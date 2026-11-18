@@ -1,0 +1,208 @@
+{
+  "schema_version": "1.9.2",
+  "id": "ETB-2026-0045",
+  "modified": "2026-11-18T23:49:47Z",
+  "aliases": [],
+  "related": [
+    "ETB-2026-0042",
+    "ETB-2026-0046"
+  ],
+  "summary": "PyRIT ConversationScorer rendered the transcript as bare 'Role: text' lines, so a target reply containing 'User:' and 'Assistant:' lines forged extra turns for the judge (ETB-02)",
+  "details": "`ConversationScorer._render_conversation` in `pyrit/score/conversation_scorer.py` wrote each turn as a `{role}: {text}` line into one flat transcript and handed it to the wrapped judge. A reply from the target under test that contained its own `User:` and `Assistant:` lines therefore read as extra turns. The pull request reports a run through the real scorer pipeline with only the model transport mocked: a refusal conversation scored False, and the same conversation with two such lines inside the assistant reply scored True. This is ETB-02 (unsanitized model output in the evaluator prompt): the target's reply could forge the structure of the transcript the judge reads.\n\nThe mocked judge takes the transcript at face value, as the pull request says. No run against a live judge model is on the page.\n\nFix: pull request #3321 (opened 2026-10-18, merged 2026-10-21) puts each turn between `[BEGIN {ROLE} TURN i]` and `[END {ROLE} TURN i]` lines and indents every content line by two spaces, so a role prefix or a closing marker inside the content cannot start a line. It splits on every Unicode line break. The pull request says an earlier draft that split on the newline character only could be bypassed with a U+2028 line separator. The scorer's `rendering_version` moved from 1 to 2. The fix was first released in pyrit 1.2.0 (PyPI, 2026-11-13). Release 1.1.0 (2026-09-04) does not contain it. Issue #3323, filed on 2026-10-18, is the written report for this fix and two related ones. It is open on 2026-11-18.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "PyPI",
+        "name": "pyrit",
+        "purl": "pkg:pypi/pyrit"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "1.2.0"
+            }
+          ]
+        }
+      ],
+      "database_specific": {
+        "note": "'introduced: 0' is a conservative bound; releases before 1.1.0 were not checked. Git tag v1.1.0 writes the transcript as flat `Role: text` lines in `pyrit/score/conversation_scorer.py` and does not contain the fix commit. Tag v1.2.0 contains it (GitHub compare, 2026-11-13, with the tag at commit 5398ad19). PyPI lists pyrit 1.2.0, uploaded 2026-11-13. `pyrit/score/conversation_scorer.py` in the 1.2.0 wheel has the same SHA-256 as the file at that commit."
+      }
+    },
+    {
+      "ranges": [
+        {
+          "type": "GIT",
+          "repo": "https://github.com/microsoft/PyRIT",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "8caded7d48cf8b5688b515c33385cb2261c86b3f"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "REPORT",
+      "url": "https://github.com/microsoft/PyRIT/issues/3323"
+    },
+    {
+      "type": "FIX",
+      "url": "https://github.com/microsoft/PyRIT/pull/3321"
+    },
+    {
+      "type": "FIX",
+      "url": "https://github.com/microsoft/PyRIT/commit/8caded7d48cf8b5688b515c33385cb2261c86b3f"
+    },
+    {
+      "type": "PACKAGE",
+      "url": "https://pypi.org/project/pyrit/"
+    },
+    {
+      "type": "WEB",
+      "url": "https://doi.org/10.5281/zenodo.21633620"
+    },
+    {
+      "type": "WEB",
+      "url": "https://www.authensor.com/etb"
+    }
+  ],
+  "credits": [
+    {
+      "name": "John Kearney (Authensor Research)",
+      "contact": [
+        "mailto:john@authensor.com",
+        "https://github.com/AUTHENSOR"
+      ],
+      "type": "FINDER"
+    },
+    {
+      "name": "John Kearney (Authensor Research)",
+      "contact": [
+        "mailto:john@authensor.com",
+        "https://github.com/AUTHENSOR"
+      ],
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "romanlutz (PyRIT maintainer)",
+      "contact": [
+        "https://github.com/romanlutz"
+      ],
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "romanlutz (PyRIT maintainer)",
+      "contact": [
+        "https://github.com/romanlutz"
+      ],
+      "type": "REMEDIATION_REVIEWER"
+    }
+  ],
+  "database_specific": {
+    "etb": {
+      "schema": "etb-registry/1",
+      "classes": [
+        "ETB-02"
+      ],
+      "family": "verdict-path",
+      "target": {
+        "kind": "judge",
+        "name": "PyRIT ConversationScorer transcript renderer",
+        "repo": "https://github.com/microsoft/PyRIT",
+        "components": [
+          "pyrit/score/conversation_scorer.py"
+        ],
+        "affected_component_versions": "pyrit 1.1.0, and later commits before 8caded7d (2026-10-21); earlier releases not checked. Fixed in pyrit 1.2.0"
+      },
+      "attack": {
+        "description": "The target under test writes a reply that contains lines starting with `User:` and `Assistant:`. The scorer renders the reply into the flat transcript, and the judge reads the embedded lines as further turns of the conversation.",
+        "preconditions": "A scorer wrapped by `ConversationScorer`. The reported run used a mocked judge that takes the transcript at face value; the effect on a live judge model was not measured.",
+        "demonstrated": true,
+        "poc_public": true,
+        "poc_pointer": "The run described in pull request #3321 and the cases added to tests/unit/score/test_conversation_history_scorer.py and tests/unit/score/test_conversation_source.py."
+      },
+      "hardening": {
+        "fix": "Put each turn inside a numbered, role-labelled fence and indent every content line, splitting on all Unicode line breaks.",
+        "pattern": "Escape or structurally neutralize model output before it enters any grader prompt; use message-role separation (taxonomy ETB-02 fix pattern).",
+        "residual_risk": "The fence stops forged turns and forged closing markers. Text inside a turn can still address the judge."
+      },
+      "disclosure": {
+        "tier": 1,
+        "tier_reason": "Public artifact, no non-public information, impact limited to the judge's verdict, fix supplied with the report.",
+        "status": "published",
+        "channel": [
+          "github-issue",
+          "github-pr"
+        ],
+        "reported": "2026-10-18",
+        "acknowledged": "2026-10-19",
+        "fixed": "2026-10-21",
+        "released": "pyrit 1.2.0",
+        "registry_published": "2026-11-18",
+        "notes": "Reported on 2026-10-18 as issue #3323 and pull request #3321 from the AUTHENSOR account; the pull request carried the fix. A maintainer asked for changes on 2026-10-19, added a commit to the renderer and its tests, approved on 2026-10-20 and merged it on 2026-10-21. The merged commit lists the maintainer as a co-author. Issue #3323 is open on 2026-11-18."
+      },
+      "cross_references": {
+        "cwe": [
+          "CWE-1427"
+        ],
+        "atlas": {
+          "version": "2026.10",
+          "tactics": [
+            "AML.TA0007"
+          ],
+          "techniques": [
+            "AML.T0051"
+          ],
+          "fit": "best-fit",
+          "case_study": null
+        },
+        "owasp_ai_exchange": {
+          "section": "5.3.6 Testing evaluation integrity (proposed)",
+          "mechanism": "Unsanitized model output",
+          "url": "https://github.com/OWASP/www-project-ai-security-and-privacy-guide/pull/247",
+          "status": "Proposed by Authensor in OWASP/www-project-ai-security-and-privacy-guide pull request #247, which is open on 2026-11-13. Not published OWASP text."
+        },
+        "owasp_llm_top10_2025": [
+          "LLM01"
+        ],
+        "nist_caisi_category": "grader-gaming"
+      },
+      "harness": {
+        "probes": [],
+        "attacker_strategies": [
+          "prompt_boundary_break"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://github.com/microsoft/PyRIT/pull/3321",
+          "note": "The report and the merged fix."
+        },
+        {
+          "url": "https://github.com/microsoft/PyRIT/issues/3323",
+          "note": "The written report for this fix and two related ones, filed 2026-10-18 from the AUTHENSOR account. It says each was shown end to end with the model transport mocked. Open on 2026-11-13."
+        }
+      ],
+      "severity_self": null,
+      "unverified": [
+        "The effect on a live judge model (the reported run mocks the model transport).",
+        "Whether releases before 1.1.0 contain the affected renderer.",
+        "Whether any published result was affected (no claim is made).",
+        "Affiliations of the credited GitHub accounts; each is credited by handle and by the role the page shows.",
+        "The first commit that contained the affected code (the 'introduced' bound).",
+        "That the pyrit 1.2.0 package as a whole was built from git tag v1.2.0. Only the fixed file in the wheel was compared with the tag."
+      ]
+    }
+  },
+  "published": "2026-11-18T23:49:47Z"
+}

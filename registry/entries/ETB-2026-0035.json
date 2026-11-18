@@ -1,0 +1,212 @@
+{
+  "schema_version": "1.9.2",
+  "id": "ETB-2026-0035",
+  "modified": "2026-11-18T23:49:47Z",
+  "aliases": [],
+  "related": [],
+  "summary": "OpenCompass code-execution evaluators compared results with ==, so a returned object whose __eq__ always returns True passed every assertion (ETB-09)",
+  "details": "The OpenCompass evaluators for LCBench, MBPP, LiveCodeBench, APPS and TACO run the model's code and then check results with `assert ... == expected` or `output == expected`. In several of them the model's code and the test ran through one `exec()` call in one namespace. Issue #2535 showed that a solution returning an object whose `__eq__` always returns True passes these checks without solving the problem, and reported the exploit passing where a wrong solution failed. This is ETB-09 (forged execution artifact): the grader trusted an always-equal return value produced by the code under test.\n\nFix: pull request #2565, written by a maintainer (opened 2026-07-22, merged 2026-07-28, first released in opencompass 0.5.4 on 2026-08-26), adds `opencompass/utils/code_execution.py` with `type_aware_equal`, which requires the exact type before it compares values, and uses it in the five dataset evaluators. It also runs the model's code and the test assertions as separate `exec()` steps. A new test file covers an always-equal object and an always-equal `int` subclass.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "PyPI",
+        "name": "opencompass",
+        "purl": "pkg:pypi/opencompass"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "0.5.4"
+            }
+          ]
+        }
+      ],
+      "database_specific": {
+        "note": "'introduced: 0' is a conservative bound. Git tag 0.5.3 does not contain the fix commit and tag 0.5.4 does (GitHub compare, 2026-11-12). PyPI lists 0.5.4, uploaded 2026-08-26."
+      }
+    },
+    {
+      "ranges": [
+        {
+          "type": "GIT",
+          "repo": "https://github.com/open-compass/opencompass",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "af8fbcde3b59af8b4d5f22cafae115534a3fa455"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "REPORT",
+      "url": "https://github.com/open-compass/opencompass/issues/2535"
+    },
+    {
+      "type": "FIX",
+      "url": "https://github.com/open-compass/opencompass/pull/2565"
+    },
+    {
+      "type": "FIX",
+      "url": "https://github.com/open-compass/opencompass/commit/af8fbcde3b59af8b4d5f22cafae115534a3fa455"
+    },
+    {
+      "type": "PACKAGE",
+      "url": "https://pypi.org/project/opencompass/"
+    },
+    {
+      "type": "WEB",
+      "url": "https://doi.org/10.5281/zenodo.21633620"
+    },
+    {
+      "type": "EVIDENCE",
+      "url": "https://github.com/AUTHENSOR/etb-scan/blob/main/EVIDENCE-TABLE.md"
+    },
+    {
+      "type": "WEB",
+      "url": "https://www.authensor.com/etb"
+    }
+  ],
+  "credits": [
+    {
+      "name": "John Kearney (Authensor Research)",
+      "contact": [
+        "mailto:john@authensor.com",
+        "https://github.com/AUTHENSOR"
+      ],
+      "type": "FINDER"
+    },
+    {
+      "name": "ssiq (opencompass maintainer)",
+      "contact": [
+        "https://github.com/ssiq"
+      ],
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "Myhs-phz (opencompass maintainer)",
+      "contact": [
+        "https://github.com/Myhs-phz"
+      ],
+      "type": "REMEDIATION_REVIEWER"
+    }
+  ],
+  "database_specific": {
+    "etb": {
+      "schema": "etb-registry/1",
+      "classes": [
+        "ETB-09"
+      ],
+      "family": "verdict-path",
+      "target": {
+        "kind": "grader",
+        "name": "OpenCompass code-execution evaluators",
+        "repo": "https://github.com/open-compass/opencompass",
+        "components": [
+          "opencompass/datasets/LCBench.py",
+          "opencompass/datasets/mbpp.py",
+          "opencompass/datasets/apps.py",
+          "opencompass/datasets/taco.py",
+          "opencompass/datasets/livecodebench/evaluator.py",
+          "opencompass/datasets/livecodebench/execute_utils.py",
+          "opencompass/datasets/livecodebench/testing_util.py"
+        ],
+        "affected_component_versions": "opencompass < 0.5.4"
+      },
+      "attack": {
+        "description": "The model's solution returns an object of a class whose `__eq__` always returns True. Every `assert solve(args) == expected` check passes, and the problem is scored as solved.",
+        "preconditions": "A code-execution dataset graded by one of the listed evaluators. The model's code runs in the same process as the checks.",
+        "demonstrated": true,
+        "poc_public": true,
+        "poc_pointer": "The class in issue #2535 and tests/datasets/test_code_execution.py, added by pull request #2565."
+      },
+      "hardening": {
+        "fix": "Compare results with a function that requires the exact expected type before comparing values, and run the model's code and the assertions as separate steps.",
+        "pattern": "Verify against frozen ground truth the policy cannot influence (taxonomy ETB-09 fix pattern).",
+        "residual_risk": "The model's code and the checks still run in one process and one namespace."
+      },
+      "disclosure": {
+        "tier": 1,
+        "tier_reason": "Public artifact, no non-public information, impact limited to the benchmark score, fix pattern proposed with the report.",
+        "status": "published",
+        "channel": [
+          "github-issue"
+        ],
+        "reported": "2026-07-14",
+        "acknowledged": "2026-07-22",
+        "fixed": "2026-07-28",
+        "released": "opencompass 0.5.4",
+        "registry_published": "2026-11-18",
+        "notes": "Reported as issue #2535 from the AUTHENSOR account. A maintainer opened the fix, pull request #2565, on 2026-07-22 with the text 'Fix #2535'; that is the acknowledged date. A second maintainer approved and merged it on 2026-07-28."
+      },
+      "cross_references": {
+        "cwe": [
+          "CWE-807",
+          "CWE-345"
+        ],
+        "atlas": {
+          "version": "2026.10",
+          "tactics": [
+            "AML.TA0007"
+          ],
+          "techniques": [
+            "AML.T0053"
+          ],
+          "fit": "best-fit",
+          "case_study": null
+        },
+        "owasp_ai_exchange": {
+          "section": "5.3.6 Testing evaluation integrity (proposed)",
+          "mechanism": "Forged execution artifact",
+          "url": "https://github.com/OWASP/www-project-ai-security-and-privacy-guide/pull/247",
+          "status": "Proposed by Authensor in OWASP/www-project-ai-security-and-privacy-guide pull request #247, which is open on 2026-11-13. Not published OWASP text."
+        },
+        "owasp_llm_top10_2025": [],
+        "nist_caisi_category": "grader-gaming"
+      },
+      "harness": {
+        "probes": [
+          "stdout_spoof_pass",
+          "exit_code_ignored"
+        ],
+        "attacker_strategies": [
+          "forge_execution_artifact"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://github.com/open-compass/opencompass/issues/2535",
+          "note": "The report."
+        },
+        {
+          "url": "https://github.com/open-compass/opencompass/pull/2565",
+          "note": "The merged fix."
+        },
+        {
+          "url": "https://github.com/AUTHENSOR/etb-scan/blob/main/EVIDENCE-TABLE.md",
+          "note": "Row open-compass/opencompass #2535 (ETB-09; the table shows it as open, it has since landed)."
+        }
+      ],
+      "severity_self": null,
+      "unverified": [
+        "The end-to-end run behind the result table in the issue (the page gives the table, not a log).",
+        "Whether any published result was affected (no claim is made).",
+        "Affiliations of the credited GitHub accounts; each is credited by handle and by the role the page shows.",
+        "The first release that contained the affected code (the 'introduced' bound).",
+        "That each package-index release was built from the git tag of the same name.",
+        "The two filings in other projects that the issue cites as earlier cases of the same pattern. They were not read and are not repeated in this record."
+      ]
+    }
+  },
+  "published": "2026-11-18T23:49:47Z"
+}

@@ -1,0 +1,209 @@
+{
+  "schema_version": "1.9.2",
+  "id": "ETB-2026-0046",
+  "modified": "2026-11-18T23:49:47Z",
+  "aliases": [],
+  "related": [
+    "ETB-2026-0042",
+    "ETB-2026-0045"
+  ],
+  "summary": "PyRIT extract_json_from_string returned the first JSON object in a judge reply, so a JSON verdict quoted from the target's reply was parsed as the score (ETB-01)",
+  "details": "`extract_json_from_string` in `pyrit/exceptions/exceptions_helpers.py` returned the first JSON literal it could parse in a response. When a judge reply held more than one distinct JSON literal, the first one became the verdict. The pull request describes the case: the target under test puts a self-assessment such as `{\"score_value\": true, ...}` in its reply, the judge quotes the reply before giving its own verdict, and the quoted object is parsed as the score. It reports a run with the real `SelfAskTrueFalseScorer` and only the model transport mocked: the judge wrote `score_value: false` and the stored score was True, with the rationale text from the target's object. This is ETB-01 (injected verdict trusted): the verdict was extracted by first match from text that can contain the candidate's own words.\n\nThe pull request notes that the judge prompts ask for JSON and do not forbid quoting the evaluated reply. No run against a live judge model is on the page.\n\nFix: pull request #3320 (opened 2026-10-18, merged 2026-10-25) collects every top-level JSON literal in the reply. One literal, or several equivalent ones, is extracted as before. Several distinct literals return the original string, so the caller fails with invalid JSON and retries. In review the maintainer found two defects in the submitted fix and fixed both in a commit of the maintainer's own on the pull request: booleans and numbers are no longer treated as equal, and decoder-limit failures stay on the invalid-JSON path. The pull request states one limit: a judge whose whole reply is the echoed object defeats any string-level parser. The fix was first released in pyrit 1.2.0 (PyPI, 2026-11-13). Release 1.1.0 (2026-09-04) does not contain it.\n\nFollow-up: issue #3323 is the written report for this fix and two related ones, and it is open on 2026-11-18. On 2026-11-08 a third party wrote there that the earliest-JSON case still reproduces on `main` at c98bdd8 when the judge's own verdict after the quote has a small JSON defect, such as a truncated object, single quotes or a trailing comma. Then only the quoted object decodes, and it becomes the score. The comment says this needs a judge that does not enforce JSON output, and that how often real judges write such replies was not measured. On 2026-11-15 the maintainer opened the remaining work to contributions. Pull request #4321 (opened 2026-11-15, open on 2026-11-18) proposes a check that rejects a verdict copied from the scored text.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "PyPI",
+        "name": "pyrit",
+        "purl": "pkg:pypi/pyrit"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "1.2.0"
+            }
+          ]
+        }
+      ],
+      "database_specific": {
+        "note": "'introduced: 0' is a conservative bound; releases before 1.1.0 were not checked. The maintainer's review on the pull request (2026-10-19) says the base, `main` at that time and v1.1.0 all return the first payload, so 1.1.0 has the affected parser. Git tag v1.1.0 does not contain the fix commit and tag v1.2.0 does (GitHub compare, 2026-11-13, with the tag at commit 5398ad19). PyPI lists pyrit 1.2.0, uploaded 2026-11-13. `pyrit/exceptions/exceptions_helpers.py` in the 1.2.0 wheel has the same SHA-256 as the file at that commit."
+      }
+    },
+    {
+      "ranges": [
+        {
+          "type": "GIT",
+          "repo": "https://github.com/microsoft/PyRIT",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "c2dd51b0fff848739ee32c968fbe81426a4fb88a"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "REPORT",
+      "url": "https://github.com/microsoft/PyRIT/issues/3323"
+    },
+    {
+      "type": "FIX",
+      "url": "https://github.com/microsoft/PyRIT/pull/3320"
+    },
+    {
+      "type": "FIX",
+      "url": "https://github.com/microsoft/PyRIT/commit/c2dd51b0fff848739ee32c968fbe81426a4fb88a"
+    },
+    {
+      "type": "PACKAGE",
+      "url": "https://pypi.org/project/pyrit/"
+    },
+    {
+      "type": "WEB",
+      "url": "https://doi.org/10.5281/zenodo.21633620"
+    },
+    {
+      "type": "WEB",
+      "url": "https://www.authensor.com/etb"
+    }
+  ],
+  "credits": [
+    {
+      "name": "John Kearney (Authensor Research)",
+      "contact": [
+        "mailto:john@authensor.com",
+        "https://github.com/AUTHENSOR"
+      ],
+      "type": "FINDER"
+    },
+    {
+      "name": "John Kearney (Authensor Research)",
+      "contact": [
+        "mailto:john@authensor.com",
+        "https://github.com/AUTHENSOR"
+      ],
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "romanlutz (PyRIT maintainer)",
+      "contact": [
+        "https://github.com/romanlutz"
+      ],
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "romanlutz (PyRIT maintainer)",
+      "contact": [
+        "https://github.com/romanlutz"
+      ],
+      "type": "REMEDIATION_REVIEWER"
+    }
+  ],
+  "database_specific": {
+    "etb": {
+      "schema": "etb-registry/1",
+      "classes": [
+        "ETB-01"
+      ],
+      "family": "verdict-path",
+      "target": {
+        "kind": "judge",
+        "name": "PyRIT judge JSON extraction",
+        "repo": "https://github.com/microsoft/PyRIT",
+        "components": [
+          "pyrit/exceptions/exceptions_helpers.py"
+        ],
+        "affected_component_versions": "pyrit 1.1.0, and later commits before c2dd51b0 (2026-10-25); earlier releases not checked. Fixed in pyrit 1.2.0"
+      },
+      "attack": {
+        "description": "The target under test embeds a JSON object shaped like a verdict in its reply. The judge quotes the reply and then gives its own JSON verdict. The parser returns the first object, which is the target's.",
+        "preconditions": "A scorer that parses judge JSON through `extract_json_from_string`, and a judge that quotes the evaluated reply before its own verdict. The reported run used a mocked judge; how often a live judge quotes the object was not measured.",
+        "demonstrated": true,
+        "poc_public": true,
+        "poc_pointer": "The run described in pull request #3320, tests/unit/exceptions/test_json_extraction_ambiguity.py and the cases added to tests/unit/score/test_self_ask_true_false.py."
+      },
+      "hardening": {
+        "fix": "Accept a judge reply only when it holds one JSON verdict or equivalent repeats; treat several distinct JSON literals as invalid and retry.",
+        "pattern": "Parse the judge's own structured verdict; bind extraction to the last or explicitly delimited block; never read the candidate (taxonomy ETB-01 fix pattern).",
+        "residual_risk": "A public follow-up says the fix can still be passed. On 2026-11-08 a third party wrote on issue #3323 that the case still reproduces on `main` at c98bdd8 when the judge's own verdict after the quote has a small JSON defect: only the quoted object decodes, so it becomes the score. The issue is open on 2026-11-18. On 2026-11-15 the maintainer opened the remaining work to contributions. Pull request #4321 (opened 2026-11-15, open on 2026-11-18) proposes a check that rejects a verdict copied from the scored text. Separately, a judge whose whole reply is the echoed object still yields that object; the pull request says this needs structured output on the judge side."
+      },
+      "disclosure": {
+        "tier": 1,
+        "tier_reason": "Public artifact, no non-public information, impact limited to the judge's verdict, fix supplied with the report.",
+        "status": "published",
+        "channel": [
+          "github-issue",
+          "github-pr"
+        ],
+        "reported": "2026-10-18",
+        "acknowledged": "2026-10-19",
+        "fixed": "2026-10-25",
+        "released": "pyrit 1.2.0",
+        "registry_published": "2026-11-18",
+        "notes": "Reported on 2026-10-18 as issue #3323 and pull request #3320 from the AUTHENSOR account; the pull request carried the fix. The maintainer asked for changes on 2026-10-19, fixed the two review points in a commit of the maintainer's own, approved on 2026-10-25 and merged it. Issue #3323 is open on 2026-11-18 and holds a follow-up from a third party dated 2026-11-08. On 2026-11-15 the maintainer opened the remaining work to contributions. Pull request #4321 (opened 2026-11-15, open on 2026-11-18) proposes a check that rejects a verdict copied from the scored text."
+      },
+      "cross_references": {
+        "cwe": [
+          "CWE-807"
+        ],
+        "atlas": {
+          "version": "2026.10",
+          "tactics": [
+            "AML.TA0007"
+          ],
+          "techniques": [
+            "AML.T0051"
+          ],
+          "fit": "best-fit",
+          "case_study": null
+        },
+        "owasp_ai_exchange": {
+          "section": "5.3.6 Testing evaluation integrity (proposed)",
+          "mechanism": "Injected verdict",
+          "url": "https://github.com/OWASP/www-project-ai-security-and-privacy-guide/pull/247",
+          "status": "Proposed by Authensor in OWASP/www-project-ai-security-and-privacy-guide pull request #247, which is open on 2026-11-13. Not published OWASP text."
+        },
+        "owasp_llm_top10_2025": [
+          "LLM01"
+        ],
+        "nist_caisi_category": "grader-gaming"
+      },
+      "harness": {
+        "probes": [],
+        "attacker_strategies": [
+          "verdict_injection"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://github.com/microsoft/PyRIT/pull/3320",
+          "note": "The report and the merged fix."
+        },
+        {
+          "url": "https://github.com/microsoft/PyRIT/issues/3323",
+          "note": "The written report for this fix and two related ones, filed 2026-10-18 from the AUTHENSOR account. It says each was shown end to end with the model transport mocked. Open on 2026-11-13. Holds a third party's follow-up of 2026-11-08 on this fix."
+        }
+      ],
+      "severity_self": null,
+      "unverified": [
+        "The follow-up of 2026-11-08 on issue #3323 and pull request #4321 were read from their pages and not reproduced.",
+        "How often a live judge model quotes an embedded JSON object before its own verdict.",
+        "Whether any published result was affected (no claim is made).",
+        "Affiliations of the credited GitHub accounts; each is credited by handle and by the role the page shows.",
+        "The first commit that contained the affected code (the 'introduced' bound).",
+        "Whether releases before 1.1.0 contain the affected parser.",
+        "That the pyrit 1.2.0 package as a whole was built from git tag v1.2.0. Only the fixed file in the wheel was compared with the tag."
+      ]
+    }
+  },
+  "published": "2026-11-18T23:49:47Z"
+}

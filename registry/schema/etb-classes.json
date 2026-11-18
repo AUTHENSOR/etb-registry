@@ -1,0 +1,16 @@
+{
+  "title": "Evaluator Trust Boundary classes a registry entry may cite",
+  "source": "https://github.com/AUTHENSOR/etb-scan/blob/main/TAXONOMY.md",
+  "classes": {
+    "ETB-01": "Injected verdict trusted",
+    "ETB-02": "Unsanitized model output in the evaluator prompt",
+    "ETB-03": "Fail-open on error",
+    "ETB-04": "Denominator drop",
+    "ETB-05": "Unscorable read as behavior-absent",
+    "ETB-06": "Missing normalization",
+    "ETB-07": "Composition blindness",
+    "ETB-08": "Metric miscounting",
+    "ETB-09": "Forged execution artifact",
+    "ETB-10": "Evaluation context leakage"
+  }
+}

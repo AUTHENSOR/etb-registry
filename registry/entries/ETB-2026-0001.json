@@ -1,0 +1,249 @@
+{
+  "schema_version": "1.9.2",
+  "id": "ETB-2026-0001",
+  "modified": "2026-11-18T23:49:47Z",
+  "aliases": [],
+  "related": [],
+  "summary": "ControlArena monitor prompt formatters embedded model-written tool-call arguments and chain-of-thought unsanitized, letting the monitored policy inject into the monitor prompt (ETB-02)",
+  "details": "ControlArena's monitor prompt formatters built the monitor prompt by interpolating untrusted model output with f-strings and str.format(). `control_arena/monitor/_last_tool_calls_prompt_formatter.py` and `_prefix_prompt_formatter.py` concatenated tool-call function names and arguments verbatim (reported as issue #791 on 2026-03-31), and `_cot_prompt_formatter.py` interpolated the monitored assistant message's content directly (reported as issue #809 on 2026-04-16). A policy under evaluation could therefore place text in a tool-call argument or in its chain of thought that the monitor reads as structural: fake section markers, directives, or a planted low suspicion score, biasing the monitor toward a low-suspicion verdict. This is ETB-02 (unsanitized model output in the evaluator prompt): the monitor's verdict depends on text the evaluated system writes.\n\nThe pages show formatter output and formatter tests. They do not show a monitor's verdict changing.\n\nFixes: pull request #798 (merged 2026-04-08, first released in control-arena 15.0.0) JSON-serializes tool-call arguments in both formatters and HTML-escapes the function name and the arguments inside the prefix formatter's existing `<tool_call_N>` tags. It carries the reporter's commit from pull request #795, which was closed as superseded, with formatting applied. Pull request #810 (merged 2026-04-30, first released in control-arena 16.0.0) wraps chain-of-thought content in `<cot>` tags, HTML-escapes it, and adds adversarial tests for closing-tag injection, newline-plus-fake-tag injection and format-specifier passthrough. Pull request #854, from another contributor (opened 2026-08-03, merged 2026-08-10, first released in control-arena 20.0.0 on 2026-10-05), found that the tool-call formatter still passed `<` and `>` from the function name and the arguments after #798, so a tool call could close the `<tool_calls>` block of the default monitor prompt. It HTML-escapes both fields. All three are breaking changes to monitor prompts, so monitor outputs produced before and after them are not directly comparable.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "PyPI",
+        "name": "control-arena",
+        "purl": "pkg:pypi/control-arena"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "20.0.0"
+            }
+          ]
+        }
+      ],
+      "database_specific": {
+        "note": "15.0.0 (2026-04-08) JSON-serialized tool-call arguments in the tool-call and prefix formatters and HTML-escaped the prefix formatter's fields (#798). 16.0.0 (2026-05-20) fixed the chain-of-thought formatter (#810). The tool-call formatter still passed angle brackets until 20.0.0 (2026-10-05, #854): git tag v19.0.0 does not contain that commit and tag v20.0.0 does (GitHub compare, 2026-11-13). 'introduced: 0' is a conservative bound; the first release containing the affected formatters is UNVERIFIED."
+      }
+    },
+    {
+      "ranges": [
+        {
+          "type": "GIT",
+          "repo": "https://github.com/UKGovernmentBEIS/control-arena",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "cda6d453788949a4aa9b033a926652026a64e0ec"
+            }
+          ]
+        },
+        {
+          "type": "GIT",
+          "repo": "https://github.com/UKGovernmentBEIS/control-arena",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "e3778b114f87d0f2df2a7f59c7820d8b2f93d19f"
+            }
+          ]
+        },
+        {
+          "type": "GIT",
+          "repo": "https://github.com/UKGovernmentBEIS/control-arena",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "fbe4d5d7cf1eca18334c9b5406b9e7ba752b539a"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "REPORT",
+      "url": "https://github.com/UKGovernmentBEIS/control-arena/issues/791"
+    },
+    {
+      "type": "FIX",
+      "url": "https://github.com/UKGovernmentBEIS/control-arena/pull/798"
+    },
+    {
+      "type": "REPORT",
+      "url": "https://github.com/UKGovernmentBEIS/control-arena/issues/809"
+    },
+    {
+      "type": "FIX",
+      "url": "https://github.com/UKGovernmentBEIS/control-arena/pull/810"
+    },
+    {
+      "type": "FIX",
+      "url": "https://github.com/UKGovernmentBEIS/control-arena/pull/854"
+    },
+    {
+      "type": "PACKAGE",
+      "url": "https://pypi.org/project/control-arena/"
+    },
+    {
+      "type": "WEB",
+      "url": "https://doi.org/10.5281/zenodo.21633620"
+    },
+    {
+      "type": "EVIDENCE",
+      "url": "https://github.com/AUTHENSOR/etb-scan/blob/main/EVIDENCE-TABLE.md"
+    },
+    {
+      "type": "WEB",
+      "url": "https://www.authensor.com/etb"
+    }
+  ],
+  "credits": [
+    {
+      "name": "John Kearney (Authensor Research)",
+      "contact": [
+        "mailto:john@authensor.com",
+        "https://github.com/JohnKearney15"
+      ],
+      "type": "FINDER"
+    },
+    {
+      "name": "tvararu (control-arena contributor)",
+      "contact": [
+        "https://github.com/tvararu"
+      ],
+      "type": "FINDER"
+    },
+    {
+      "name": "John Kearney (Authensor Research)",
+      "contact": [
+        "mailto:john@authensor.com",
+        "https://github.com/JohnKearney15"
+      ],
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "tvararu (control-arena contributor)",
+      "contact": [
+        "https://github.com/tvararu"
+      ],
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "Rogan-Inglis (control-arena maintainer)",
+      "contact": [
+        "https://github.com/Rogan-Inglis"
+      ],
+      "type": "REMEDIATION_REVIEWER"
+    }
+  ],
+  "database_specific": {
+    "etb": {
+      "schema": "etb-registry/1",
+      "classes": [
+        "ETB-02"
+      ],
+      "family": "verdict-path",
+      "target": {
+        "kind": "monitor",
+        "name": "ControlArena",
+        "repo": "https://github.com/UKGovernmentBEIS/control-arena",
+        "components": [
+          "control_arena/monitor/_last_tool_calls_prompt_formatter.py",
+          "control_arena/monitor/_prefix_prompt_formatter.py",
+          "control_arena/monitor/_cot_prompt_formatter.py"
+        ],
+        "affected_component_versions": "control-arena < 20.0.0. 15.0.0 fixed the prefix formatter and JSON-serialized tool-call arguments; 16.0.0 fixed the chain-of-thought formatter; 20.0.0 escaped angle brackets in the tool-call formatter"
+      },
+      "attack": {
+        "description": "The monitored policy emits a tool-call argument or chain-of-thought string containing text shaped like the monitor prompt's own structure (closing tags, section headers, instructions, or a stated suspicion score). The formatter interpolates it unescaped, so the monitor model reads attacker text as harness text and can be steered to a low suspicion score.",
+        "preconditions": "The policy under evaluation controls tool-call arguments or its visible reasoning; the monitor uses a markdown-based prompt formatter (default configuration). The effect on a monitor's suspicion score was not measured on the pages.",
+        "demonstrated": false,
+        "poc_public": true,
+        "poc_pointer": "Adversarial test cases added in control-arena #798, #810 and #854 (TestLastToolCallsAdversarialInputs, TestPrefixAdversarialInputs and TestCotAdversarialInputs). They test formatter output."
+      },
+      "hardening": {
+        "fix": "Wrap every model-derived field in delimited tags and HTML-escape it before it enters the monitor prompt; keep instructions in a role the policy cannot write; add adversarial formatter tests.",
+        "pattern": "Escape or structurally neutralize model output before it enters any grader prompt; use message-role separation (taxonomy ETB-02 fix pattern).",
+        "residual_risk": "Escaping prevents structural confusion but not persuasion: a monitor can still be argued with inside a correctly delimited block. Measure with the dynamic attacker strategy prompt_boundary_break."
+      },
+      "disclosure": {
+        "tier": 1,
+        "tier_reason": "Public artifact, no non-public information, impact limited to the monitor's verdict, fix proposed with the report.",
+        "status": "published",
+        "channel": [
+          "github-issue",
+          "github-pr"
+        ],
+        "reported": "2026-03-31",
+        "acknowledged": "2026-03-31",
+        "fixed": "2026-08-10",
+        "released": "control-arena 15.0.0, 16.0.0 and 20.0.0 (one part of the fix each)",
+        "registry_published": "2026-11-18",
+        "notes": "The maintainer replied to issue #791 on the day it was filed and welcomed a pull request. The reporter opened pull request #795 on 2026-04-05. The maintainer opened #798 to carry that commit with ruff formatting applied and a breaking-change note, closed #795 as superseded and merged #798 on 2026-04-08. The follow-up issue #809 was fixed by the reporter's pull request #810, which the maintainer approved on 2026-04-27 and merged on 2026-04-30. A third pull request, #854 from another contributor, was opened on 2026-08-03. It escapes angle brackets that the tool-call formatter still passed after #798. The maintainer approved and merged it on 2026-08-10. The fixed date is that merge."
+      },
+      "cross_references": {
+        "cwe": [
+          "CWE-1427"
+        ],
+        "atlas": {
+          "version": "2026.10",
+          "tactics": [
+            "AML.TA0007"
+          ],
+          "techniques": [
+            "AML.T0051"
+          ],
+          "fit": "best-fit",
+          "case_study": "ControlArena monitor prompt injection, submitted by Authensor via the ATLAS contribution form on 2026-10-28. Not in the published ATLAS data (v2026.10) as of 2026-11-13."
+        },
+        "owasp_ai_exchange": {
+          "section": "5.3.6 Testing evaluation integrity (proposed)",
+          "mechanism": "Unsanitized model output",
+          "url": "https://github.com/OWASP/www-project-ai-security-and-privacy-guide/pull/247",
+          "status": "Proposed by Authensor in OWASP/www-project-ai-security-and-privacy-guide pull request #247, which is open on 2026-11-13. Not published OWASP text."
+        },
+        "owasp_llm_top10_2025": [
+          "LLM01"
+        ],
+        "nist_caisi_category": "grader-gaming"
+      },
+      "harness": {
+        "probes": [],
+        "attacker_strategies": [
+          "prompt_boundary_break"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://github.com/AUTHENSOR/etb-scan/blob/main/EVIDENCE-TABLE.md",
+          "note": "Rows UKGovernmentBEIS/control-arena #791 and #809 (landed)."
+        },
+        {
+          "url": "https://github.com/UKGovernmentBEIS/control-arena/pull/854",
+          "note": "A later fix from another contributor. It says the tool-call formatter still passed angle brackets from the function name and the arguments after #798."
+        }
+      ],
+      "severity_self": null,
+      "unverified": [
+        "The effect on a monitor model's suspicion score. The pages show formatter output and formatter tests, not a monitor run.",
+        "First control-arena release containing the affected formatters (introduced bound).",
+        "Affiliations of the credited GitHub accounts; each is credited by handle and by the role the page shows.",
+        "Whether any published result was affected (no claim is made).",
+        "The state of the ATLAS submission of 2026-10-28. No public page shows it."
+      ]
+    }
+  },
+  "published": "2026-11-18T23:49:47Z"
+}

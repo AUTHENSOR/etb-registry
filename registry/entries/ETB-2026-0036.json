@@ -1,0 +1,207 @@
+{
+  "schema_version": "1.9.2",
+  "id": "ETB-2026-0036",
+  "modified": "2026-11-18T23:49:47Z",
+  "aliases": [],
+  "related": [
+    "ETB-2026-0039"
+  ],
+  "summary": "EvalScope AIME adapters set the verdict from the word Yes anywhere in the judge text, and the AIR-Bench Chat adapter took scores from the last two bare numbers (ETB-01)",
+  "details": "Two EvalScope benchmark adapters parsed judge output with rules that were not bound to the judge's decision. In `evalscope/benchmarks/aime/aime_adapter.py`, the answer was marked correct when the word `Yes` appeared anywhere in the judge's reply, so `Yes, the answer is incorrect.` scored as correct. The AIME24, AIME25 and AIME26 adapters share the method. In `evalscope/benchmarks/air_bench/air_bench_chat_adapter.py`, the two scores fell back to the last two bare numbers in the judge output. The judge prompt embeds the candidate's answer, so numbers that the candidate writes and the judge quotes could become the scores. Issue #1578 reported both on 2026-08-14 with stand-alone scripts that drive the real parse functions with a stubbed judge. A project contributor reproduced both on the issue. This is ETB-01 (injected verdict trusted): the verdict was extracted by substring and by position from text that can contain the candidate's own words.\n\nFix: pull request #1588 (opened 2026-08-16, merged 2026-08-17, first released in evalscope 1.11.0 on 2026-08-24). A contributor wrote the first commit. It accepted only a judge reply that was exactly `Yes` or `No`, or exactly two scores, recorded `parse_failed` metadata otherwise, and kept the existing 0.0 score when no AIR-Bench score could be parsed. The maintainer added a second commit and merged the pull request. The maintainer's commit sets the rules the fix ships with: an AIME verdict counts when `Yes` or `No` stands on a line of its own, AIR-Bench scores are read from the first non-empty line, and the metric keys are left out, not set to 0.0, when no AIR-Bench reply can be parsed. A later pull request description (#1702) says these adapters were then moved to JSON contracts in #1601; that change was not read for this record.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "PyPI",
+        "name": "evalscope",
+        "purl": "pkg:pypi/evalscope"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "1.11.0"
+            }
+          ]
+        }
+      ],
+      "database_specific": {
+        "note": "'introduced: 0' is a conservative bound; the issue pins commit 31ccc8c0. Git tag v1.10.0 does not contain the fix commit and tag v1.11.0 does (GitHub compare, 2026-11-12). PyPI lists 1.11.0, uploaded 2026-08-24."
+      }
+    },
+    {
+      "ranges": [
+        {
+          "type": "GIT",
+          "repo": "https://github.com/modelscope/evalscope",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "426979f45121b3a69dc4bf73f221327df994e7b6"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "REPORT",
+      "url": "https://github.com/modelscope/evalscope/issues/1578"
+    },
+    {
+      "type": "FIX",
+      "url": "https://github.com/modelscope/evalscope/pull/1588"
+    },
+    {
+      "type": "FIX",
+      "url": "https://github.com/modelscope/evalscope/commit/426979f45121b3a69dc4bf73f221327df994e7b6"
+    },
+    {
+      "type": "PACKAGE",
+      "url": "https://pypi.org/project/evalscope/"
+    },
+    {
+      "type": "WEB",
+      "url": "https://doi.org/10.5281/zenodo.21633620"
+    },
+    {
+      "type": "WEB",
+      "url": "https://www.authensor.com/etb"
+    }
+  ],
+  "credits": [
+    {
+      "name": "John Kearney (Authensor Research)",
+      "contact": [
+        "mailto:john@authensor.com",
+        "https://github.com/AUTHENSOR"
+      ],
+      "type": "FINDER"
+    },
+    {
+      "name": "atirna (evalscope contributor)",
+      "contact": [
+        "https://github.com/atirna"
+      ],
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "Yunnglin (evalscope maintainer)",
+      "contact": [
+        "https://github.com/Yunnglin"
+      ],
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "Yunnglin (evalscope maintainer)",
+      "contact": [
+        "https://github.com/Yunnglin"
+      ],
+      "type": "REMEDIATION_REVIEWER"
+    }
+  ],
+  "database_specific": {
+    "etb": {
+      "schema": "etb-registry/1",
+      "classes": [
+        "ETB-01"
+      ],
+      "family": "verdict-path",
+      "target": {
+        "kind": "judge",
+        "name": "EvalScope AIME and AIR-Bench Chat judge parsers",
+        "repo": "https://github.com/modelscope/evalscope",
+        "components": [
+          "evalscope/benchmarks/aime/aime_adapter.py",
+          "evalscope/benchmarks/air_bench/air_bench_chat_adapter.py"
+        ],
+        "affected_component_versions": "evalscope < 1.11.0"
+      },
+      "attack": {
+        "description": "AIME: the judge explains itself and uses the word `Yes` while rejecting the answer; the parser marks the answer correct. AIR-Bench Chat: the candidate ends its answer with score-shaped numbers, the judge quotes them, and the parser takes them as the two scores.",
+        "preconditions": "AIME24, AIME25 or AIME26 with the LLM judge, or AIR-Bench Chat. The AIME case needs no adversary. The AIR-Bench case needs the judge to quote or echo the candidate's numbers.",
+        "demonstrated": true,
+        "poc_public": true,
+        "poc_pointer": "The two stand-alone scripts in issue #1578 (parser level, stubbed judge) and tests/benchmark/test_judge_output_parsing.py, added by pull request #1588."
+      },
+      "hardening": {
+        "fix": "Accept only the exact output format the judge prompt asks for; treat anything else as a parse failure and record it.",
+        "pattern": "Parse the judge's own structured verdict; bind extraction to the last or explicitly delimited block; never read the candidate (taxonomy ETB-01 fix pattern).",
+        "residual_risk": "When no AIR-Bench judge pass can be parsed, the fixed adapter leaves out the metric keys, which drops the sample from the mean, and records `parse_failed`."
+      },
+      "disclosure": {
+        "tier": 1,
+        "tier_reason": "Public artifact, no non-public information, impact limited to the benchmark metrics, a clear fix pattern follows from the report.",
+        "status": "published",
+        "channel": [
+          "github-issue"
+        ],
+        "reported": "2026-08-14",
+        "acknowledged": "2026-08-17",
+        "fixed": "2026-08-17",
+        "released": "evalscope 1.11.0",
+        "registry_published": "2026-11-18",
+        "notes": "Reported as issue #1578 from the AUTHENSOR account. A contributor reproduced it on 2026-08-15. Fixed by pull request #1588. A contributor wrote the first commit; the maintainer wrote the second commit, which sets the parse rules the fix ships with, and merged the pull request on 2026-08-17. That is the acknowledged date."
+      },
+      "cross_references": {
+        "cwe": [
+          "CWE-807"
+        ],
+        "atlas": {
+          "version": "2026.10",
+          "tactics": [
+            "AML.TA0007"
+          ],
+          "techniques": [
+            "AML.T0051"
+          ],
+          "fit": "best-fit",
+          "case_study": null
+        },
+        "owasp_ai_exchange": {
+          "section": "5.3.6 Testing evaluation integrity (proposed)",
+          "mechanism": "Injected verdict",
+          "url": "https://github.com/OWASP/www-project-ai-security-and-privacy-guide/pull/247",
+          "status": "Proposed by Authensor in OWASP/www-project-ai-security-and-privacy-guide pull request #247, which is open on 2026-11-13. Not published OWASP text."
+        },
+        "owasp_llm_top10_2025": [
+          "LLM01"
+        ],
+        "nist_caisi_category": "grader-gaming"
+      },
+      "harness": {
+        "probes": [],
+        "attacker_strategies": [
+          "verdict_injection"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://github.com/modelscope/evalscope/issues/1578",
+          "note": "The report, the scripts and a contributor's reproduction."
+        },
+        {
+          "url": "https://github.com/modelscope/evalscope/pull/1588",
+          "note": "The merged fix."
+        }
+      ],
+      "severity_self": null,
+      "unverified": [
+        "That a live judge model quotes candidate-planted numbers (the scripts use a stubbed judge).",
+        "The later move of these adapters to JSON contracts (#1601).",
+        "Whether any published result was affected (no claim is made).",
+        "Affiliations of the credited GitHub accounts; each is credited by handle and by the role the page shows.",
+        "The first release that contained the affected code (the 'introduced' bound).",
+        "That each package-index release was built from the git tag of the same name.",
+        "The scripts in the issue were read, not run."
+      ]
+    }
+  },
+  "published": "2026-11-18T23:49:47Z"
+}

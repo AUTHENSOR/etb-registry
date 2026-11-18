@@ -1,0 +1,197 @@
+{
+  "schema_version": "1.9.2",
+  "id": "ETB-2026-0039",
+  "modified": "2026-11-18T23:49:47Z",
+  "aliases": [],
+  "related": [
+    "ETB-2026-0036"
+  ],
+  "summary": "EvalScope judge prompt was built by sequential replace, so a model answer containing {gold} pulled the reference answer into the predicted-answer section (ETB-02)",
+  "details": "Issue #1697 reported four scoring defects in EvalScope at commit 3c52bd0, as a follow-up to #1578. This record covers the first. `LLMJudge.build_prompt` in `evalscope/metrics/judge/llm_judge.py` filled `{question}`, `{pred}` and `{gold}` with one `str.replace` after another over the whole prompt. A model answer that contained the literal text `{gold}` had the reference answer substituted into the predicted-answer section. The issue reports a wrong answer scoring 1.0 this way. This is ETB-02 (unsanitized model output in the evaluator prompt): text the evaluated model wrote was read again as a template placeholder.\n\nThe other three defects were fixed in the same pull request and have no registry record. A failed metric was recorded as a successful zero. The `general_arena` bootstrap confidence bounds depended on the global random state. `Accuracy` with `allow_inclusion` graded with Python `in`, so list and string references were matched by different rules.\n\nFix: pull request #1702, written by another contributor (opened 2026-09-04, merged 2026-09-07, first released in evalscope 1.12.0 on 2026-09-16), renders the three placeholders in one pass over the original template, so inserted questions, predictions and references stay literal. The pull request also changes score-cache identities.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "PyPI",
+        "name": "evalscope",
+        "purl": "pkg:pypi/evalscope"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "1.12.0"
+            }
+          ]
+        }
+      ],
+      "database_specific": {
+        "note": "'introduced: 0' is a conservative bound; the issue pins commit 3c52bd0. Git tag v1.11.1 does not contain the fix commit and tag v1.12.0 does (GitHub compare, 2026-11-12). PyPI lists 1.12.0, uploaded 2026-09-16."
+      }
+    },
+    {
+      "ranges": [
+        {
+          "type": "GIT",
+          "repo": "https://github.com/modelscope/evalscope",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "c31f0f946c09bc087f856a017637ac157b5459a5"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "REPORT",
+      "url": "https://github.com/modelscope/evalscope/issues/1697"
+    },
+    {
+      "type": "FIX",
+      "url": "https://github.com/modelscope/evalscope/pull/1702"
+    },
+    {
+      "type": "FIX",
+      "url": "https://github.com/modelscope/evalscope/commit/c31f0f946c09bc087f856a017637ac157b5459a5"
+    },
+    {
+      "type": "PACKAGE",
+      "url": "https://pypi.org/project/evalscope/"
+    },
+    {
+      "type": "WEB",
+      "url": "https://doi.org/10.5281/zenodo.21633620"
+    },
+    {
+      "type": "WEB",
+      "url": "https://www.authensor.com/etb"
+    }
+  ],
+  "credits": [
+    {
+      "name": "John Kearney (Authensor Research)",
+      "contact": [
+        "mailto:john@authensor.com",
+        "https://github.com/AUTHENSOR"
+      ],
+      "type": "FINDER"
+    },
+    {
+      "name": "git-jxj (evalscope contributor)",
+      "contact": [
+        "https://github.com/git-jxj"
+      ],
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "Yunnglin (evalscope maintainer)",
+      "contact": [
+        "https://github.com/Yunnglin"
+      ],
+      "type": "REMEDIATION_REVIEWER"
+    }
+  ],
+  "database_specific": {
+    "etb": {
+      "schema": "etb-registry/1",
+      "classes": [
+        "ETB-02"
+      ],
+      "family": "verdict-path",
+      "target": {
+        "kind": "judge",
+        "name": "EvalScope LLM judge prompt builder",
+        "repo": "https://github.com/modelscope/evalscope",
+        "components": [
+          "evalscope/metrics/judge/llm_judge.py"
+        ],
+        "affected_component_versions": "evalscope < 1.12.0"
+      },
+      "attack": {
+        "description": "The evaluated model includes the literal text `{gold}` in its answer. The judge prompt is built by replacing `{pred}` first and `{gold}` afterwards, so the reference answer is written into the predicted-answer section that the judge reads.",
+        "preconditions": "A benchmark graded through `LLMJudge.build_prompt` with a template that contains `{gold}`.",
+        "demonstrated": true,
+        "poc_public": true,
+        "poc_pointer": "tests/metrics/test_judge_prompt_rendering.py, added by pull request #1702. The issue says the defect reproduces with offline stubs; the stubs are not on the page."
+      },
+      "hardening": {
+        "fix": "Render the judge template's placeholders in a single pass so inserted text is never re-read as a placeholder.",
+        "pattern": "Escape or structurally neutralize model output before it enters any grader prompt; use message-role separation (taxonomy ETB-02 fix pattern).",
+        "residual_risk": "Scores cached before the fix are not reused: the pull request changes cache identities and asks for a review rerun."
+      },
+      "disclosure": {
+        "tier": 1,
+        "tier_reason": "Public artifact, no non-public information, impact limited to benchmark scores, fixes offered with the report.",
+        "status": "published",
+        "channel": [
+          "github-issue"
+        ],
+        "reported": "2026-09-03",
+        "acknowledged": "2026-09-07",
+        "fixed": "2026-09-07",
+        "released": "evalscope 1.12.0",
+        "registry_published": "2026-11-18",
+        "notes": "Reported as issue #1697 from the AUTHENSOR account, together with three other defects. Fixed by pull request #1702, written by another contributor; a maintainer approved and merged it on 2026-09-07."
+      },
+      "cross_references": {
+        "cwe": [
+          "CWE-1427"
+        ],
+        "atlas": {
+          "version": "2026.10",
+          "tactics": [
+            "AML.TA0007"
+          ],
+          "techniques": [
+            "AML.T0051"
+          ],
+          "fit": "best-fit",
+          "case_study": null
+        },
+        "owasp_ai_exchange": {
+          "section": "5.3.6 Testing evaluation integrity (proposed)",
+          "mechanism": "Unsanitized model output",
+          "url": "https://github.com/OWASP/www-project-ai-security-and-privacy-guide/pull/247",
+          "status": "Proposed by Authensor in OWASP/www-project-ai-security-and-privacy-guide pull request #247, which is open on 2026-11-13. Not published OWASP text."
+        },
+        "owasp_llm_top10_2025": [
+          "LLM01"
+        ],
+        "nist_caisi_category": "grader-gaming"
+      },
+      "harness": {
+        "probes": [],
+        "attacker_strategies": [
+          "prompt_boundary_break"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://github.com/modelscope/evalscope/issues/1697",
+          "note": "The report (four defects; this record covers the first)."
+        },
+        {
+          "url": "https://github.com/modelscope/evalscope/pull/1702",
+          "note": "The merged fix."
+        }
+      ],
+      "severity_self": null,
+      "unverified": [
+        "The offline stubs the issue refers to (not published on the page).",
+        "Whether any published result was affected (no claim is made).",
+        "Affiliations of the credited GitHub accounts; each is credited by handle and by the role the page shows.",
+        "The first release that contained the affected code (the 'introduced' bound).",
+        "That each package-index release was built from the git tag of the same name."
+      ]
+    }
+  },
+  "published": "2026-11-18T23:49:47Z"
+}

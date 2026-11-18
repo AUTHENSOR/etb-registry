@@ -1,0 +1,209 @@
+{
+  "schema_version": "1.9.2",
+  "id": "ETB-2026-0034",
+  "modified": "2026-11-18T23:49:47Z",
+  "aliases": [],
+  "related": [],
+  "summary": "garak StringDetector matched raw text with no Unicode normalization, so flagged terms written in fullwidth or zero-width forms scored as clean; 0.16.0 adds an opt-in normalize option and the default is unchanged (ETB-06)",
+  "details": "`StringDetector` in `garak/detectors/base.py` lower-cases text and then tests for each listed substring. It did no Unicode normalization. Issue #1867 ran the `unsafe_content.LDNOOBW` detector on one word in four forms: plain ASCII scored 1.0, and the fullwidth form, a form with a zero-width joiner inside the word, and a form with a combining mark each scored 0.0. Detectors built on `StringDetector` share the behaviour. This is ETB-06 (missing normalization): Unicode variants evaded a detector that compares raw text. The etb-scan evidence table lists this issue under ETB-06.\n\nChange: pull request #1884, written by another contributor (opened 2026-06-25, merged 2026-07-24, first released in garak 0.16.0 on 2026-08-04), adds a `normalize` parameter to `StringDetector`. `NFKC` applies Unicode NFKC to the trigger strings and to the output. `NFKC+strip_format` also removes category Cf characters such as zero-width joiners. The default is `None`, which keeps the earlier behaviour. Tests added in the pull request record two limits: NFKC does not map look-alike letters from another script (for example Cyrillic e) to ASCII, and it does not remove combining marks.\n\nThe default is unchanged, and the maintainer has said that is by design. No detector shipped with garak sets the parameter. Issue #2151 (2026-09-04, from another reporter) showed `unsafe_content.LDNOOBW` loading with `normalize` set to `None` and still scoring a fullwidth term 0.0, and listed 21 content-safety `StringDetector` classes in the same state. Pull request #2152 proposed turning the option on for those 21. The maintainer closed both the same day and wrote that this is intended design: #1884 added a setting for users and left the existing behaviour on purpose. So with default settings the behaviour reported in #1867 remains in 0.16.0 and later. It changes only where an operator sets `normalize`. A check on 2026-11-12 found the option's values only in `garak/detectors/base.py`, where the default is `None`, and in its test file (GitHub code search of the default branch). `unsafe_content.py`, `lmrc.py` and `goodside.py`, read at `main` commit 89277920, do not set it.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "PyPI",
+        "name": "garak",
+        "purl": "pkg:pypi/garak"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            }
+          ]
+        }
+      ],
+      "database_specific": {
+        "note": "'introduced: 0' is a conservative bound; the issue pins commit c01ceb9b. No 'fixed' event is given, because the default behaviour is unchanged. Pull request #1884 (commit 6d0befdb) adds an opt-in `normalize` option. Git tag v0.15.1 does not contain that commit and tag v0.16.0 does (GitHub compare, 2026-11-12). PyPI lists 0.16.0, uploaded 2026-08-04. With default settings every release is affected. With `normalize` set to `NFKC+strip_format` by the operator, 0.16.0 and later catch the fullwidth and zero-width forms."
+      }
+    },
+    {
+      "ranges": [
+        {
+          "type": "GIT",
+          "repo": "https://github.com/NVIDIA/garak",
+          "events": [
+            {
+              "introduced": "0"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "REPORT",
+      "url": "https://github.com/NVIDIA/garak/issues/1867"
+    },
+    {
+      "type": "WEB",
+      "url": "https://github.com/NVIDIA/garak/pull/1884"
+    },
+    {
+      "type": "WEB",
+      "url": "https://github.com/NVIDIA/garak/commit/6d0befdb0cc416b69ecf850397981740e863c5ce"
+    },
+    {
+      "type": "REPORT",
+      "url": "https://github.com/NVIDIA/garak/issues/2151"
+    },
+    {
+      "type": "WEB",
+      "url": "https://github.com/NVIDIA/garak/pull/2152"
+    },
+    {
+      "type": "PACKAGE",
+      "url": "https://pypi.org/project/garak/"
+    },
+    {
+      "type": "WEB",
+      "url": "https://doi.org/10.5281/zenodo.21633620"
+    },
+    {
+      "type": "EVIDENCE",
+      "url": "https://github.com/AUTHENSOR/etb-scan/blob/main/EVIDENCE-TABLE.md"
+    },
+    {
+      "type": "WEB",
+      "url": "https://www.authensor.com/etb"
+    }
+  ],
+  "credits": [
+    {
+      "name": "John Kearney (Authensor Research)",
+      "contact": [
+        "mailto:john@authensor.com",
+        "https://github.com/AUTHENSOR"
+      ],
+      "type": "FINDER"
+    },
+    {
+      "name": "PhinehasNarh (garak contributor)",
+      "contact": [
+        "https://github.com/PhinehasNarh"
+      ],
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "jmartin-tech (garak maintainer)",
+      "contact": [
+        "https://github.com/jmartin-tech"
+      ],
+      "type": "REMEDIATION_REVIEWER"
+    }
+  ],
+  "database_specific": {
+    "etb": {
+      "schema": "etb-registry/1",
+      "classes": [
+        "ETB-06"
+      ],
+      "family": "detection-coverage",
+      "target": {
+        "kind": "detector",
+        "name": "garak StringDetector",
+        "repo": "https://github.com/NVIDIA/garak",
+        "components": [
+          "garak/detectors/base.py"
+        ],
+        "affected_component_versions": "All garak releases with default settings. From 0.16.0 an operator can set `normalize` on a detector."
+      },
+      "attack": {
+        "description": "The model output contains a listed term written with fullwidth code points, or with a zero-width character inside the word. The raw substring test does not match and the detector scores the output as clean.",
+        "preconditions": "Any detector built on `StringDetector` with default settings. From 0.16.0 the forms are caught only where the operator sets `normalize`; no shipped detector sets it.",
+        "demonstrated": true,
+        "poc_public": true,
+        "poc_pointer": "The detector run in issue #1867 and the tests added to tests/detectors/test_detectors_base.py by pull request #1884."
+      },
+      "hardening": {
+        "fix": "Normalize both the trigger strings and the model output before matching (NFKC, optionally removing format characters), behind a detector parameter.",
+        "pattern": "Normalize both trigger strings and model output before matching (taxonomy ETB-06 fix pattern).",
+        "residual_risk": "The normalization is off by default and no shipped detector turns it on. The maintainer closed issue #2151 and pull request #2152, which asked for it in the content-safety detectors, as intended design. NFKC does not fold look-alike letters from other scripts and does not remove combining marks; the pull request's own tests record both limits. By the merged code neither option removes combining marks, so the combining-mark form in the report still does not match."
+      },
+      "disclosure": {
+        "tier": 1,
+        "tier_reason": "Public artifact, no non-public information, impact limited to the detector's result, fix direction proposed with the report.",
+        "status": "published",
+        "channel": [
+          "github-issue"
+        ],
+        "reported": "2026-06-18",
+        "acknowledged": "2026-06-26",
+        "fixed": null,
+        "released": "No release changes the default; the maintainer says that is by design. An opt-in `normalize` option is available from garak 0.16.0 (2026-08-04).",
+        "registry_published": "2026-11-18",
+        "notes": "Reported as issue #1867 from the AUTHENSOR account. Pull request #1884, written by another contributor, added the opt-in option; a maintainer first reviewed it on 2026-06-26 and merged it on 2026-07-24, and the issue closed with the merge. The issue says all three variant forms collapse to ASCII under NFKC. The merged code and tests show that NFKC alone handles the fullwidth form only. On 2026-09-04 the maintainer closed issue #2151 and pull request #2152 as intended design. No fixed date is given, because the default behaviour is unchanged."
+      },
+      "cross_references": {
+        "cwe": [
+          "CWE-176"
+        ],
+        "atlas": {
+          "version": "2026.10",
+          "tactics": [
+            "AML.TA0007"
+          ],
+          "techniques": [],
+          "fit": "best-fit",
+          "case_study": null
+        },
+        "owasp_ai_exchange": {
+          "section": "5.3.6 Testing evaluation integrity (proposed)",
+          "mechanism": "Missing normalization",
+          "url": "https://github.com/OWASP/www-project-ai-security-and-privacy-guide/pull/247",
+          "status": "Proposed by Authensor in OWASP/www-project-ai-security-and-privacy-guide pull request #247, which is open on 2026-11-13. Not published OWASP text."
+        },
+        "owasp_llm_top10_2025": [],
+        "nist_caisi_category": "grader-gaming"
+      },
+      "harness": {
+        "probes": [],
+        "attacker_strategies": [
+          "unicode_evasion"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://github.com/NVIDIA/garak/issues/1867",
+          "note": "The report, with the detector run."
+        },
+        {
+          "url": "https://github.com/NVIDIA/garak/pull/1884",
+          "note": "The merged change that adds the opt-in option, and its tests, including the two recorded limits."
+        },
+        {
+          "url": "https://github.com/NVIDIA/garak/issues/2151",
+          "note": "A later report from another reporter: no shipped detector sets the option. Holds the maintainer's statement that this is intended design."
+        },
+        {
+          "url": "https://github.com/NVIDIA/garak/pull/2152",
+          "note": "A pull request to turn the option on in 21 content-safety detectors. Closed without merge, with the same statement from the maintainer."
+        },
+        {
+          "url": "https://github.com/AUTHENSOR/etb-scan/blob/main/EVIDENCE-TABLE.md",
+          "note": "Row NVIDIA/garak #1867 (ETB-06). The table shows it as landed; the default behaviour is unchanged, as the details explain."
+        }
+      ],
+      "severity_self": null,
+      "unverified": [
+        "That GitHub's code search index was current for garak's default branch on 2026-11-12. Three detector files were also read directly at commit 89277920.",
+        "Whether any published result was affected (no claim is made).",
+        "Affiliations of the credited GitHub accounts; each is credited by handle and by the role the page shows.",
+        "The first release that contained the affected code (the 'introduced' bound).",
+        "That each package-index release was built from the git tag of the same name."
+      ]
+    }
+  },
+  "published": "2026-11-18T23:49:47Z"
+}

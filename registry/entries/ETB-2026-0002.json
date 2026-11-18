@@ -1,0 +1,210 @@
+{
+  "schema_version": "1.9.2",
+  "id": "ETB-2026-0002",
+  "modified": "2026-11-18T23:49:47Z",
+  "aliases": [],
+  "related": [],
+  "summary": "SWE-bench evaluation harness graded a patch RESOLVED_FULL from forged pytest PASSED lines in stdout, without checking the test process exit status (ETB-09)",
+  "details": "The SWE-bench evaluation harness decided test outcomes by parsing captured pytest stdout line by line (`swebench/harness/log_parsers/python.py`), recording any line that starts with `PASSED` as a passing test. `run_evaluation.py` discarded the test command's exit status, and no structured report (junit XML) was consulted. Because the model patch is applied with full write access to the repository under test, a patch that adds a `conftest.py` with a `pytest_terminal_summary` hook, or any wrapper, printing `PASSED <name>` for each FAIL_TO_PASS and PASS_TO_PASS test is graded RESOLVED_FULL with no genuine fix. This is ETB-09 (forged execution artifact): the grader trusts an execution result the evaluated system can author.\n\nPull request #620 (opened 2026-07-13, merged 2026-08-14, first released in swebench 5.0.0 on 2026-08-17) carried the report and a first fix. The submitted fix read the exit status of the whole evaluation script. The maintainer reworked it before merging. That script ends with a `git checkout` that resets the test files and it does not stop on errors, so its exit status was the reset's and not the tests'. The maintainer wrote on the pull request that the submitted version did not catch the spoof and that, in a real run of the Verified split, 18 solved instances would have flipped to unsolved. As merged, the evaluation script saves the test command's own exit status right after the tests run and writes it after the end-of-output marker as `>>>>> Test Exit Code: N`. Grading refuses a log that reports no failure while the test command exited non-zero. The maintainer also wrote the regression test (`tests/test_grading_spoofed_output.py`). The repository was formerly published as princeton-nlp/SWE-bench; the old URL redirects.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "PyPI",
+        "name": "swebench",
+        "purl": "pkg:pypi/swebench"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "5.0.0"
+            }
+          ]
+        }
+      ],
+      "database_specific": {
+        "note": "'introduced: 0' is a conservative bound: the stdout-only parser predates the harness's packaging history that was checked. Versions 4.1.0 (2025-09-11) and earlier are affected; 5.0.0 (2026-08-17) is the first release containing commit 62ad43ac."
+      }
+    },
+    {
+      "ranges": [
+        {
+          "type": "GIT",
+          "repo": "https://github.com/SWE-bench/SWE-bench",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "62ad43acd5219d40cf91056e4ba68594cdb1cbc4"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "FIX",
+      "url": "https://github.com/SWE-bench/SWE-bench/pull/620"
+    },
+    {
+      "type": "FIX",
+      "url": "https://github.com/SWE-bench/SWE-bench/commit/62ad43acd5219d40cf91056e4ba68594cdb1cbc4"
+    },
+    {
+      "type": "PACKAGE",
+      "url": "https://pypi.org/project/swebench/"
+    },
+    {
+      "type": "WEB",
+      "url": "https://doi.org/10.5281/zenodo.21633620"
+    },
+    {
+      "type": "ARTICLE",
+      "url": "https://www.nist.gov/blogs/caissi-research-blog/cheating-ai-agent-evaluations"
+    },
+    {
+      "type": "EVIDENCE",
+      "url": "https://github.com/AUTHENSOR/etb-scan/blob/main/EVIDENCE-TABLE.md"
+    },
+    {
+      "type": "WEB",
+      "url": "https://www.authensor.com/etb"
+    }
+  ],
+  "credits": [
+    {
+      "name": "John Kearney (Authensor Research)",
+      "contact": [
+        "mailto:john@authensor.com",
+        "https://github.com/AUTHENSOR"
+      ],
+      "type": "FINDER"
+    },
+    {
+      "name": "John Kearney (Authensor Research)",
+      "contact": [
+        "mailto:john@authensor.com",
+        "https://github.com/AUTHENSOR"
+      ],
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "john-b-yang (SWE-bench maintainer)",
+      "contact": [
+        "https://github.com/john-b-yang"
+      ],
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "john-b-yang (SWE-bench maintainer)",
+      "contact": [
+        "https://github.com/john-b-yang"
+      ],
+      "type": "REMEDIATION_REVIEWER"
+    }
+  ],
+  "database_specific": {
+    "etb": {
+      "schema": "etb-registry/1",
+      "classes": [
+        "ETB-09"
+      ],
+      "family": "verdict-path",
+      "target": {
+        "kind": "harness",
+        "name": "SWE-bench evaluation harness",
+        "repo": "https://github.com/SWE-bench/SWE-bench",
+        "components": [
+          "swebench/harness/log_parsers/python.py",
+          "swebench/harness/grading.py",
+          "swebench/harness/run_evaluation.py",
+          "swebench/harness/docker_utils.py"
+        ],
+        "affected_component_versions": "swebench < 5.0.0"
+      },
+      "attack": {
+        "description": "A model patch adds a conftest.py (or wraps the test command) so that the captured stdout contains `PASSED <test name>` lines for every expected test, while the real tests are never run or fail. The stdout-only parser records every expected test as passing and the instance is scored RESOLVED_FULL.",
+        "preconditions": "The patch is applied with write access to the repository root before tests run (default harness behaviour); grading reads only stdout.",
+        "demonstrated": true,
+        "poc_public": true,
+        "poc_pointer": "Pull request #620 describes the forged output and the hook that prints it. The regression test tests/test_grading_spoofed_output.py, written by the maintainer as part of the merged fix, grades a forged log with the fixed code."
+      },
+      "hardening": {
+        "fix": "Record the test command's own exit status, not the wrapping script's, write it to the log outside the parsed region, and refuse a log that reports no failure when the tests exited non-zero; keep a regression test with forged output.",
+        "pattern": "Verify against frozen ground truth the policy cannot influence (taxonomy ETB-09 fix pattern).",
+        "residual_risk": "Pull request #620 calls the exit-status check the minimal defence and names running pytest with `--junitxml` and parsing the structured report as the deeper one. That follow-up is not part of the merged fix."
+      },
+      "disclosure": {
+        "tier": 1,
+        "tier_reason": "Public artifact, no non-public information, impact limited to the benchmark score, fix supplied with the report.",
+        "status": "published",
+        "channel": [
+          "github-pr"
+        ],
+        "reported": "2026-07-13",
+        "acknowledged": "2026-08-14",
+        "fixed": "2026-08-14",
+        "released": "swebench 5.0.0",
+        "registry_published": "2026-11-18",
+        "notes": "Reported as a pull request from the AUTHENSOR account, carrying the report and a first fix. The maintainer's first reply, on 2026-08-14, explained what was wrong with the submitted fix. The maintainer reworked it on the pull request branch, added the regression test and merged it the same day. The reporter agreed with the rework on the page."
+      },
+      "cross_references": {
+        "cwe": [
+          "CWE-807",
+          "CWE-345"
+        ],
+        "atlas": {
+          "version": "2026.10",
+          "tactics": [
+            "AML.TA0007"
+          ],
+          "techniques": [
+            "AML.T0053"
+          ],
+          "fit": "best-fit",
+          "case_study": "SWE-bench forged test output, submitted by Authensor via the ATLAS contribution form on 2026-10-28. Not in the published ATLAS data (v2026.10) as of 2026-11-13. The submission proposes a dedicated technique for forged evaluation artifacts."
+        },
+        "owasp_ai_exchange": {
+          "section": "5.3.6 Testing evaluation integrity (proposed)",
+          "mechanism": "Forged execution artifact",
+          "url": "https://github.com/OWASP/www-project-ai-security-and-privacy-guide/pull/247",
+          "status": "Proposed by Authensor in OWASP/www-project-ai-security-and-privacy-guide pull request #247, which is open on 2026-11-13. Not published OWASP text."
+        },
+        "owasp_llm_top10_2025": [],
+        "nist_caisi_category": "grader-gaming"
+      },
+      "harness": {
+        "probes": [
+          "stdout_spoof_pass",
+          "exit_code_ignored"
+        ],
+        "attacker_strategies": [
+          "forge_execution_artifact"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://github.com/AUTHENSOR/etb-scan/blob/main/EVIDENCE-TABLE.md",
+          "note": "Row SWE-bench/SWE-bench #620 (ETB-09; the table shows it as open, it has since landed)."
+        },
+        {
+          "url": "https://www.nist.gov/blogs/caissi-research-blog/cheating-ai-agent-evaluations",
+          "note": "Independent observation of grader gaming on SWE-bench Verified (commented-out assertions), published 2025-12-02."
+        }
+      ],
+      "severity_self": null,
+      "unverified": [
+        "Whether any published result was affected (no claim is made).",
+        "The first swebench release that introduced the stdout-only parser.",
+        "The state of the ATLAS submission of 2026-10-28. No public page shows it."
+      ]
+    }
+  },
+  "published": "2026-11-18T23:49:47Z"
+}

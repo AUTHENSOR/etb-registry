@@ -1,0 +1,199 @@
+{
+  "schema_version": "1.9.2",
+  "id": "ETB-2026-0038",
+  "modified": "2026-11-18T23:49:47Z",
+  "aliases": [],
+  "related": [],
+  "summary": "Delphi explainer label was parsed from the first [EXPLANATION]: marker to the end of the reply, so an early or echoed marker replaced the explainer's final label (ETB-02, ETB-01)",
+  "details": "`Explainer.parse_explanation` in `delphi/explainers/explainer.py` extracted the feature label with a first-match pattern that captured from the first `[EXPLANATION]:` marker to the end of the text. The pull request describes two failure modes. When the explainer wrote the marker while reasoning, the label became the whole reasoning chain. And because the explainer prompt includes top-activating text from the subject model as written, a marker in that text could be echoed by the explainer and win the first match over the explainer's final answer. The label then goes to the scorers. Two classes apply. ETB-02 (unsanitized model output in the evaluator prompt): subject-model text enters the explainer prompt as written; this is the class the etb-scan evidence table gives the fix. ETB-01 (injected verdict trusted): the label was extracted by first match from a reply that can contain that text.\n\nThe first failure mode needs no adversary. The pull request shows the second with parser-level tests, not with a run against a subject model.\n\nFix: pull request #179 (opened 2026-07-22, merged 2026-08-25, first released in eai-delphi 0.1.4 on 2026-11-02) takes the last marker and captures only to the end of that line. It adds seven regression tests. The pull request states the limit: if an injected marker is the last line of the reply, it is still taken, and removing the marker from the prompt input was left as follow-up work.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "PyPI",
+        "name": "eai-delphi",
+        "purl": "pkg:pypi/eai-delphi"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "0.1.4"
+            }
+          ]
+        }
+      ],
+      "database_specific": {
+        "note": "'introduced: 0' is a conservative bound. The repository's pyproject.toml names the package eai-delphi, with version 0.1.3 at tag v0.1.3 and 0.1.4 at tag v0.1.4. Git tag v0.1.3 does not contain the fix commit and tag v0.1.4 does (GitHub compare, 2026-11-12). PyPI lists eai-delphi 0.1.4, uploaded 2026-11-02. The PyPI metadata gives no repository link."
+      }
+    },
+    {
+      "ranges": [
+        {
+          "type": "GIT",
+          "repo": "https://github.com/EleutherAI/delphi",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "4fea06e6e8b68eeaf302474325fca13df95c5d6f"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "FIX",
+      "url": "https://github.com/EleutherAI/delphi/pull/179"
+    },
+    {
+      "type": "FIX",
+      "url": "https://github.com/EleutherAI/delphi/commit/4fea06e6e8b68eeaf302474325fca13df95c5d6f"
+    },
+    {
+      "type": "PACKAGE",
+      "url": "https://pypi.org/project/eai-delphi/"
+    },
+    {
+      "type": "WEB",
+      "url": "https://doi.org/10.5281/zenodo.21633620"
+    },
+    {
+      "type": "EVIDENCE",
+      "url": "https://github.com/AUTHENSOR/etb-scan/blob/main/EVIDENCE-TABLE.md"
+    },
+    {
+      "type": "WEB",
+      "url": "https://www.authensor.com/etb"
+    }
+  ],
+  "credits": [
+    {
+      "name": "John Kearney (Authensor Research)",
+      "contact": [
+        "mailto:john@authensor.com",
+        "https://github.com/AUTHENSOR"
+      ],
+      "type": "FINDER"
+    },
+    {
+      "name": "John Kearney (Authensor Research)",
+      "contact": [
+        "mailto:john@authensor.com",
+        "https://github.com/AUTHENSOR"
+      ],
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "SrGonao (delphi maintainer)",
+      "contact": [
+        "https://github.com/SrGonao"
+      ],
+      "type": "REMEDIATION_REVIEWER"
+    }
+  ],
+  "database_specific": {
+    "etb": {
+      "schema": "etb-registry/1",
+      "classes": [
+        "ETB-02",
+        "ETB-01"
+      ],
+      "family": "verdict-path",
+      "target": {
+        "kind": "other",
+        "name": "Delphi explainer label parser",
+        "repo": "https://github.com/EleutherAI/delphi",
+        "components": [
+          "delphi/explainers/explainer.py"
+        ],
+        "affected_component_versions": "eai-delphi < 0.1.4 (delphi before git tag v0.1.4)"
+      },
+      "attack": {
+        "description": "Top-activating text from the subject model contains `[EXPLANATION]: <label>`. The explainer echoes it early in its reply and gives its own label on the last line. The first-match parse returns everything from the echoed marker on.",
+        "preconditions": "The default explainer pipeline. The explainer must echo the marker; this was not measured on the page. The reasoning-chain case needs no adversary.",
+        "demonstrated": false,
+        "poc_public": true,
+        "poc_pointer": "tests/test_explainers/test_parse_explanation.py, added by pull request #179 (parser level)."
+      },
+      "hardening": {
+        "fix": "Bind the label to the last `[EXPLANATION]:` marker and capture only to the end of that line.",
+        "pattern": "Escape or structurally neutralize model output before it enters any grader prompt; use message-role separation (taxonomy ETB-02 fix pattern).",
+        "residual_risk": "An injected marker on the last line of the reply is still taken. Subject-model text still enters the explainer prompt as written; the pull request names a scrub of that input as follow-up work."
+      },
+      "disclosure": {
+        "tier": 1,
+        "tier_reason": "Public artifact, no non-public information, impact limited to the explainer's label, fix supplied with the report.",
+        "status": "published",
+        "channel": [
+          "github-pr"
+        ],
+        "reported": "2026-07-22",
+        "acknowledged": "2026-08-25",
+        "fixed": "2026-08-25",
+        "released": "eai-delphi 0.1.4 (git tag v0.1.4)",
+        "registry_published": "2026-11-18",
+        "notes": "Reported as pull request #179 from the AUTHENSOR account, carrying the fix. Merged by a maintainer; no maintainer comment appears before the merge, so the acknowledged date is the merge date."
+      },
+      "cross_references": {
+        "cwe": [
+          "CWE-1427",
+          "CWE-807"
+        ],
+        "atlas": {
+          "version": "2026.10",
+          "tactics": [
+            "AML.TA0007"
+          ],
+          "techniques": [
+            "AML.T0051"
+          ],
+          "fit": "best-fit",
+          "case_study": null
+        },
+        "owasp_ai_exchange": {
+          "section": "5.3.6 Testing evaluation integrity (proposed)",
+          "mechanism": "Unsanitized model output; Injected verdict",
+          "url": "https://github.com/OWASP/www-project-ai-security-and-privacy-guide/pull/247",
+          "status": "Proposed by Authensor in OWASP/www-project-ai-security-and-privacy-guide pull request #247, which is open on 2026-11-13. Not published OWASP text."
+        },
+        "owasp_llm_top10_2025": [
+          "LLM01"
+        ],
+        "nist_caisi_category": "grader-gaming"
+      },
+      "harness": {
+        "probes": [],
+        "attacker_strategies": [
+          "prompt_boundary_break",
+          "verdict_injection"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://github.com/EleutherAI/delphi/pull/179",
+          "note": "The report, with the stated limit, and the merged fix."
+        },
+        {
+          "url": "https://github.com/AUTHENSOR/etb-scan/blob/main/EVIDENCE-TABLE.md",
+          "note": "Row EleutherAI/delphi #179 (ETB-02; the table shows it as open, it has since landed)."
+        }
+      ],
+      "severity_self": null,
+      "unverified": [
+        "That an explainer model echoes a marker from the subject model's text.",
+        "Whether any published result was affected (no claim is made).",
+        "Affiliations of the credited GitHub accounts; each is credited by handle and by the role the page shows.",
+        "The first commit that contained the affected code (the 'introduced' bound).",
+        "That each package-index release was built from the git tag of the same name."
+      ]
+    }
+  },
+  "published": "2026-11-18T23:49:47Z"
+}

@@ -1,0 +1,199 @@
+{
+  "schema_version": "1.9.2",
+  "id": "ETB-2026-0042",
+  "modified": "2026-11-18T23:49:47Z",
+  "aliases": [],
+  "related": [
+    "ETB-2026-0045",
+    "ETB-2026-0046"
+  ],
+  "summary": "PyRIT took the scoring objective from any text piece in the previous turn, so text from a tool or simulated turn could become the objective given to the scorer (ETB-02)",
+  "details": "`extract_objective_from_previous_turn_async` in `pyrit/score/message_scorer.py`, and its deprecated sync twin, build the scoring objective from the turn before the scored message. They selected the pieces of that turn by data type only (`text`). A tool piece or a simulated piece in that turn therefore supplied the objective. When a user piece was also there, the other text was joined to the user's request. The pull request shows a stored conversation whose previous turn is a tool piece: that text comes back as the objective. It says the path is reached through the deprecated `infer_objective_from_request=True` option and through the scorer evaluator's harm-dataset path. This is ETB-02 (unsanitized model output in the evaluator prompt): text that is not the request, including tool output, flowed into the objective the scorer judges against.\n\nThe page shows the wrong objective being extracted. It does not show a scorer's verdict changing.\n\nFix: pull request #3322 (opened 2026-10-18, merged 2026-10-20) keeps only pieces whose role is `user`. A previous turn with no user piece now gives an empty objective. Tests cover six non-user roles in the sync and async forms. The fix was first released in pyrit 1.2.0 (PyPI, 2026-11-13). Release 1.1.0 (2026-09-04) does not contain it.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "PyPI",
+        "name": "pyrit",
+        "purl": "pkg:pypi/pyrit"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "1.2.0"
+            }
+          ]
+        }
+      ],
+      "database_specific": {
+        "note": "'introduced: 0' is a conservative bound; releases before 1.1.0 were not checked. Git tag v1.1.0 has the data-type-only filter in `pyrit/score/message_scorer.py` and does not contain the fix commit. Tag v1.2.0 contains it (GitHub compare, 2026-11-13, with the tag at commit 5398ad19). PyPI lists pyrit 1.2.0, uploaded 2026-11-13. `pyrit/score/message_scorer.py` in the 1.2.0 wheel has the same SHA-256 as the file at that commit."
+      }
+    },
+    {
+      "ranges": [
+        {
+          "type": "GIT",
+          "repo": "https://github.com/microsoft/PyRIT",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "85d4f0c398bfd1bf3f09e1a56ddf3ee65caf054b"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "FIX",
+      "url": "https://github.com/microsoft/PyRIT/pull/3322"
+    },
+    {
+      "type": "FIX",
+      "url": "https://github.com/microsoft/PyRIT/commit/85d4f0c398bfd1bf3f09e1a56ddf3ee65caf054b"
+    },
+    {
+      "type": "PACKAGE",
+      "url": "https://pypi.org/project/pyrit/"
+    },
+    {
+      "type": "WEB",
+      "url": "https://doi.org/10.5281/zenodo.21633620"
+    },
+    {
+      "type": "WEB",
+      "url": "https://www.authensor.com/etb"
+    }
+  ],
+  "credits": [
+    {
+      "name": "John Kearney (Authensor Research)",
+      "contact": [
+        "mailto:john@authensor.com",
+        "https://github.com/AUTHENSOR"
+      ],
+      "type": "FINDER"
+    },
+    {
+      "name": "John Kearney (Authensor Research)",
+      "contact": [
+        "mailto:john@authensor.com",
+        "https://github.com/AUTHENSOR"
+      ],
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "romanlutz (PyRIT maintainer)",
+      "contact": [
+        "https://github.com/romanlutz"
+      ],
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "romanlutz (PyRIT maintainer)",
+      "contact": [
+        "https://github.com/romanlutz"
+      ],
+      "type": "REMEDIATION_REVIEWER"
+    }
+  ],
+  "database_specific": {
+    "etb": {
+      "schema": "etb-registry/1",
+      "classes": [
+        "ETB-02"
+      ],
+      "family": "verdict-path",
+      "target": {
+        "kind": "judge",
+        "name": "PyRIT scoring objective extraction",
+        "repo": "https://github.com/microsoft/PyRIT",
+        "components": [
+          "pyrit/score/message_scorer.py"
+        ],
+        "affected_component_versions": "pyrit 1.1.0, and later commits before 85d4f0c3 (2026-10-20); earlier releases not checked. Fixed in pyrit 1.2.0"
+      },
+      "attack": {
+        "description": "A stored conversation has a tool or simulated piece at the turn before the scored message. Its text is returned as the scoring objective, alone or joined to the user's request.",
+        "preconditions": "A caller that takes the objective from the previous turn: the deprecated `infer_objective_from_request=True` option or the scorer evaluator's harm-dataset path, as the pull request states. The effect on a scorer's verdict was not measured on the page.",
+        "demonstrated": false,
+        "poc_public": true,
+        "poc_pointer": "test_filters_previous_sequence_by_role_async in tests/unit/score/test_message_scorer.py, added by pull request #3322 (extraction level)."
+      },
+      "hardening": {
+        "fix": "Build the objective only from user-role pieces of the previous turn; return an empty objective when there is none.",
+        "pattern": "Escape or structurally neutralize model output before it enters any grader prompt; use message-role separation (taxonomy ETB-02 fix pattern).",
+        "residual_risk": "The objective is still inferred from stored conversation text on the two paths the pull request names."
+      },
+      "disclosure": {
+        "tier": 1,
+        "tier_reason": "Public artifact, no non-public information, impact limited to the scorer's objective and verdict, fix supplied with the report.",
+        "status": "published",
+        "channel": [
+          "github-pr"
+        ],
+        "reported": "2026-10-18",
+        "acknowledged": "2026-10-19",
+        "fixed": "2026-10-20",
+        "released": "pyrit 1.2.0",
+        "registry_published": "2026-11-18",
+        "notes": "Reported as pull request #3322 from the AUTHENSOR account, carrying the fix. A maintainer asked for changes on 2026-10-19, added a commit with tests for the fix, approved on 2026-10-20 and merged it. The merged commit lists the maintainer as a co-author."
+      },
+      "cross_references": {
+        "cwe": [
+          "CWE-1427"
+        ],
+        "atlas": {
+          "version": "2026.10",
+          "tactics": [
+            "AML.TA0007"
+          ],
+          "techniques": [
+            "AML.T0051"
+          ],
+          "fit": "best-fit",
+          "case_study": null
+        },
+        "owasp_ai_exchange": {
+          "section": "5.3.6 Testing evaluation integrity (proposed)",
+          "mechanism": "Unsanitized model output",
+          "url": "https://github.com/OWASP/www-project-ai-security-and-privacy-guide/pull/247",
+          "status": "Proposed by Authensor in OWASP/www-project-ai-security-and-privacy-guide pull request #247, which is open on 2026-11-13. Not published OWASP text."
+        },
+        "owasp_llm_top10_2025": [
+          "LLM01"
+        ],
+        "nist_caisi_category": "grader-gaming"
+      },
+      "harness": {
+        "probes": [],
+        "attacker_strategies": [
+          "prompt_boundary_break"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://github.com/microsoft/PyRIT/pull/3322",
+          "note": "The report and the merged fix."
+        }
+      ],
+      "severity_self": null,
+      "unverified": [
+        "The effect of a wrong objective on a scorer's verdict (not measured on the page).",
+        "Whether releases before 1.1.0 contain the affected code.",
+        "Whether any published result was affected (no claim is made).",
+        "Affiliations of the credited GitHub accounts; each is credited by handle and by the role the page shows.",
+        "The first commit that contained the affected code (the 'introduced' bound).",
+        "That the pyrit 1.2.0 package as a whole was built from git tag v1.2.0. Only the fixed file in the wheel was compared with the tag."
+      ]
+    }
+  },
+  "published": "2026-11-18T23:49:47Z"
+}

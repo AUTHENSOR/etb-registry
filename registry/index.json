@@ -1,0 +1,273 @@
+{
+  "schema": "etb-registry-index/1",
+  "count": 14,
+  "records": [
+    {
+      "id": "ETB-2026-0001",
+      "path": "registry/entries/ETB-2026-0001.json",
+      "summary": "ControlArena monitor prompt formatters embedded model-written tool-call arguments and chain-of-thought unsanitized, letting the monitored policy inject into the monitor prompt (ETB-02)",
+      "classes": [
+        "ETB-02"
+      ],
+      "target": {
+        "name": "ControlArena",
+        "kind": "monitor",
+        "repo": "https://github.com/UKGovernmentBEIS/control-arena"
+      },
+      "upstream": {
+        "fixed": "2026-08-10",
+        "released": "control-arena 15.0.0, 16.0.0 and 20.0.0 (one part of the fix each)"
+      },
+      "published": "2026-11-18T23:49:47Z",
+      "modified": "2026-11-18T23:49:47Z"
+    },
+    {
+      "id": "ETB-2026-0002",
+      "path": "registry/entries/ETB-2026-0002.json",
+      "summary": "SWE-bench evaluation harness graded a patch RESOLVED_FULL from forged pytest PASSED lines in stdout, without checking the test process exit status (ETB-09)",
+      "classes": [
+        "ETB-09"
+      ],
+      "target": {
+        "name": "SWE-bench evaluation harness",
+        "kind": "harness",
+        "repo": "https://github.com/SWE-bench/SWE-bench"
+      },
+      "upstream": {
+        "fixed": "2026-08-14",
+        "released": "swebench 5.0.0"
+      },
+      "published": "2026-11-18T23:49:47Z",
+      "modified": "2026-11-18T23:49:47Z"
+    },
+    {
+      "id": "ETB-2026-0027",
+      "path": "registry/entries/ETB-2026-0027.json",
+      "summary": "Inspect AI model-graded scorers put model output in the judge prompt between [BEGIN DATA] and [END DATA] markers that the output could forge; the first fix (0.3.212) did not stop the attack and 0.3.288 replaced it (ETB-02)",
+      "classes": [
+        "ETB-02"
+      ],
+      "target": {
+        "name": "Inspect AI model-graded scorers",
+        "kind": "judge",
+        "repo": "https://github.com/UKGovernmentBEIS/inspect_ai"
+      },
+      "upstream": {
+        "fixed": "2026-11-04",
+        "released": "inspect-ai 0.3.288"
+      },
+      "published": "2026-11-18T23:49:47Z",
+      "modified": "2026-11-18T23:49:47Z"
+    },
+    {
+      "id": "ETB-2026-0029",
+      "path": "registry/entries/ETB-2026-0029.json",
+      "summary": "Presidio EmailRecognizer did not match email addresses with punycode (xn--) domain labels (ETB-06)",
+      "classes": [
+        "ETB-06"
+      ],
+      "target": {
+        "name": "Presidio EmailRecognizer",
+        "kind": "detector",
+        "repo": "https://github.com/data-privacy-stack/presidio"
+      },
+      "upstream": {
+        "fixed": "2026-06-24",
+        "released": "presidio-analyzer 2.2.363"
+      },
+      "published": "2026-11-18T23:49:47Z",
+      "modified": "2026-11-18T23:49:47Z"
+    },
+    {
+      "id": "ETB-2026-0033",
+      "path": "registry/entries/ETB-2026-0033.json",
+      "summary": "Presidio Spanish NIF and NIE recognizers rejected valid lowercase identifiers because the checksum compared against an uppercase table (ETB-06)",
+      "classes": [
+        "ETB-06"
+      ],
+      "target": {
+        "name": "Presidio Spanish NIF and NIE recognizers",
+        "kind": "detector",
+        "repo": "https://github.com/data-privacy-stack/presidio"
+      },
+      "upstream": {
+        "fixed": "2026-07-01",
+        "released": "presidio-analyzer 2.2.364"
+      },
+      "published": "2026-11-18T23:49:47Z",
+      "modified": "2026-11-18T23:49:47Z"
+    },
+    {
+      "id": "ETB-2026-0034",
+      "path": "registry/entries/ETB-2026-0034.json",
+      "summary": "garak StringDetector matched raw text with no Unicode normalization, so flagged terms written in fullwidth or zero-width forms scored as clean; 0.16.0 adds an opt-in normalize option and the default is unchanged (ETB-06)",
+      "classes": [
+        "ETB-06"
+      ],
+      "target": {
+        "name": "garak StringDetector",
+        "kind": "detector",
+        "repo": "https://github.com/NVIDIA/garak"
+      },
+      "upstream": {
+        "fixed": null,
+        "released": "No release changes the default; the maintainer says that is by design. An opt-in `normalize` option is available from garak 0.16.0 (2026-08-04)."
+      },
+      "published": "2026-11-18T23:49:47Z",
+      "modified": "2026-11-18T23:49:47Z"
+    },
+    {
+      "id": "ETB-2026-0035",
+      "path": "registry/entries/ETB-2026-0035.json",
+      "summary": "OpenCompass code-execution evaluators compared results with ==, so a returned object whose __eq__ always returns True passed every assertion (ETB-09)",
+      "classes": [
+        "ETB-09"
+      ],
+      "target": {
+        "name": "OpenCompass code-execution evaluators",
+        "kind": "grader",
+        "repo": "https://github.com/open-compass/opencompass"
+      },
+      "upstream": {
+        "fixed": "2026-07-28",
+        "released": "opencompass 0.5.4"
+      },
+      "published": "2026-11-18T23:49:47Z",
+      "modified": "2026-11-18T23:49:47Z"
+    },
+    {
+      "id": "ETB-2026-0036",
+      "path": "registry/entries/ETB-2026-0036.json",
+      "summary": "EvalScope AIME adapters set the verdict from the word Yes anywhere in the judge text, and the AIR-Bench Chat adapter took scores from the last two bare numbers (ETB-01)",
+      "classes": [
+        "ETB-01"
+      ],
+      "target": {
+        "name": "EvalScope AIME and AIR-Bench Chat judge parsers",
+        "kind": "judge",
+        "repo": "https://github.com/modelscope/evalscope"
+      },
+      "upstream": {
+        "fixed": "2026-08-17",
+        "released": "evalscope 1.11.0"
+      },
+      "published": "2026-11-18T23:49:47Z",
+      "modified": "2026-11-18T23:49:47Z"
+    },
+    {
+      "id": "ETB-2026-0037",
+      "path": "registry/entries/ETB-2026-0037.json",
+      "summary": "Inspect Evals gdm_stealth oversight rater verdict was parsed from the first fenced code block, which could be a block the agent wrote into its own log (ETB-01)",
+      "classes": [
+        "ETB-01"
+      ],
+      "target": {
+        "name": "Inspect Evals gdm_stealth oversight rater",
+        "kind": "judge",
+        "repo": "https://github.com/UKGovernmentBEIS/inspect_evals"
+      },
+      "upstream": {
+        "fixed": "2026-08-17",
+        "released": "inspect-evals 0.18.0"
+      },
+      "published": "2026-11-18T23:49:47Z",
+      "modified": "2026-11-18T23:49:47Z"
+    },
+    {
+      "id": "ETB-2026-0038",
+      "path": "registry/entries/ETB-2026-0038.json",
+      "summary": "Delphi explainer label was parsed from the first [EXPLANATION]: marker to the end of the reply, so an early or echoed marker replaced the explainer's final label (ETB-02, ETB-01)",
+      "classes": [
+        "ETB-02",
+        "ETB-01"
+      ],
+      "target": {
+        "name": "Delphi explainer label parser",
+        "kind": "other",
+        "repo": "https://github.com/EleutherAI/delphi"
+      },
+      "upstream": {
+        "fixed": "2026-08-25",
+        "released": "eai-delphi 0.1.4 (git tag v0.1.4)"
+      },
+      "published": "2026-11-18T23:49:47Z",
+      "modified": "2026-11-18T23:49:47Z"
+    },
+    {
+      "id": "ETB-2026-0039",
+      "path": "registry/entries/ETB-2026-0039.json",
+      "summary": "EvalScope judge prompt was built by sequential replace, so a model answer containing {gold} pulled the reference answer into the predicted-answer section (ETB-02)",
+      "classes": [
+        "ETB-02"
+      ],
+      "target": {
+        "name": "EvalScope LLM judge prompt builder",
+        "kind": "judge",
+        "repo": "https://github.com/modelscope/evalscope"
+      },
+      "upstream": {
+        "fixed": "2026-09-07",
+        "released": "evalscope 1.12.0"
+      },
+      "published": "2026-11-18T23:49:47Z",
+      "modified": "2026-11-18T23:49:47Z"
+    },
+    {
+      "id": "ETB-2026-0042",
+      "path": "registry/entries/ETB-2026-0042.json",
+      "summary": "PyRIT took the scoring objective from any text piece in the previous turn, so text from a tool or simulated turn could become the objective given to the scorer (ETB-02)",
+      "classes": [
+        "ETB-02"
+      ],
+      "target": {
+        "name": "PyRIT scoring objective extraction",
+        "kind": "judge",
+        "repo": "https://github.com/microsoft/PyRIT"
+      },
+      "upstream": {
+        "fixed": "2026-10-20",
+        "released": "pyrit 1.2.0"
+      },
+      "published": "2026-11-18T23:49:47Z",
+      "modified": "2026-11-18T23:49:47Z"
+    },
+    {
+      "id": "ETB-2026-0045",
+      "path": "registry/entries/ETB-2026-0045.json",
+      "summary": "PyRIT ConversationScorer rendered the transcript as bare 'Role: text' lines, so a target reply containing 'User:' and 'Assistant:' lines forged extra turns for the judge (ETB-02)",
+      "classes": [
+        "ETB-02"
+      ],
+      "target": {
+        "name": "PyRIT ConversationScorer transcript renderer",
+        "kind": "judge",
+        "repo": "https://github.com/microsoft/PyRIT"
+      },
+      "upstream": {
+        "fixed": "2026-10-21",
+        "released": "pyrit 1.2.0"
+      },
+      "published": "2026-11-18T23:49:47Z",
+      "modified": "2026-11-18T23:49:47Z"
+    },
+    {
+      "id": "ETB-2026-0046",
+      "path": "registry/entries/ETB-2026-0046.json",
+      "summary": "PyRIT extract_json_from_string returned the first JSON object in a judge reply, so a JSON verdict quoted from the target's reply was parsed as the score (ETB-01)",
+      "classes": [
+        "ETB-01"
+      ],
+      "target": {
+        "name": "PyRIT judge JSON extraction",
+        "kind": "judge",
+        "repo": "https://github.com/microsoft/PyRIT"
+      },
+      "upstream": {
+        "fixed": "2026-10-25",
+        "released": "pyrit 1.2.0"
+      },
+      "published": "2026-11-18T23:49:47Z",
+      "modified": "2026-11-18T23:49:47Z"
+    }
+  ]
+}

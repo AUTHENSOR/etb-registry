@@ -1,0 +1,251 @@
+{
+  "schema_version": "1.9.2",
+  "id": "ETB-2026-0027",
+  "modified": "2026-11-18T23:49:47Z",
+  "aliases": [],
+  "related": [],
+  "summary": "Inspect AI model-graded scorers put model output in the judge prompt between [BEGIN DATA] and [END DATA] markers that the output could forge; the first fix (0.3.212) did not stop the attack and 0.3.288 replaced it (ETB-02)",
+  "details": "`model_graded_qa` and `model_graded_fact` in `src/inspect_ai/scorer/_model.py` built the judge prompt with `template.format()`. The evaluated model's output was inserted as written, between the default templates' `[BEGIN DATA]` and `[END DATA]` markers. A model output that contained those markers could close the data block early and add text that the judge reads as part of the grading prompt, including a made-up grader note or `GRADE:` line. Issue #3603 reported this on 2026-03-31. This is ETB-02 (unsanitized model output in the evaluator prompt): the structure of the judge prompt depended on text the evaluated model writes.\n\nThe issue also described a Python format-string injection through `str.format()`. Pull request #3690 states that this second problem does not occur, because `str.format()` does not re-parse substituted values. Issue #3603 did not measure how often a judge model follows injected text, and says so.\n\nFirst change, which did not stop the attack: pull request #3690, written by another contributor (opened 2026-04-15, merged 2026-04-24, first released in inspect-ai 0.3.212 on 2026-04-25), added `neutralize_structural_delimiters()`. It rewrites `[BEGIN DATA]` and `[END DATA]` to `[BEGIN-DATA]` and `[END-DATA]` in the model answer, the question, the criterion and metadata values before the prompt is formatted.\n\nMeasurement: issue #6277 (2026-11-03, from another reporter) tested the default scorers as shipped in 0.3.283. Each graded answer ended with a forged `[END DATA]` and a fake grader note that gave the wrong verdict. The issue reports the attacker's verdict on 92, 100, 92 and 55 percent of cases for four judge models. It says the rewrite from #3690 made no measurable difference, because the judges read `[END-DATA]` as the end of the data block, and that a close marker written with fullwidth brackets or a non-breaking space is not rewritten at all.\n\nFix: the maintainers' pull request #6282 (opened 2026-11-03, merged 2026-11-04, first released in inspect-ai 0.3.288 on 2026-11-07) makes a random 8-hex-character code for each grading request. The default templates put every field between its own markers that carry the code. They tell the judge that the submission is data to grade, and that marker-like text without the code belongs to the field it appears in. The pull request reports a small check with two judge models: pooled attack success was 63 and 54 percent on `main` and 0 of 288 for each judge on the branch. The reporter of #6277 then ran the original attacks against the branch with seven judges and wrote that the forged close fell to 0.08 or below for every judge on `model_graded_qa`.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "PyPI",
+        "name": "inspect-ai",
+        "purl": "pkg:pypi/inspect-ai"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "0.3.288"
+            }
+          ]
+        }
+      ],
+      "database_specific": {
+        "note": "'introduced: 0' is a conservative bound; the first release with the affected template code was not checked. Issue #3603 pins commit d35944f4. Releases 0.3.212 to 0.3.287 carry the marker rewrite from pull request #3690 (commit 0e459813; git tag 0.3.211 does not contain it and tag 0.3.212 does). Issue #6277 and pull request #6282 say that rewrite did not stop the attack, so those releases are listed as affected. Git tag 0.3.287 does not contain the fix commit e016fe2b and tag 0.3.288 does (GitHub compare, 2026-11-12). PyPI lists 0.3.288, uploaded 2026-11-07."
+      }
+    },
+    {
+      "ranges": [
+        {
+          "type": "GIT",
+          "repo": "https://github.com/UKGovernmentBEIS/inspect_ai",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "e016fe2bd75d503da4ade67ebe77feda64174bfb"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "REPORT",
+      "url": "https://github.com/UKGovernmentBEIS/inspect_ai/issues/3603"
+    },
+    {
+      "type": "REPORT",
+      "url": "https://github.com/UKGovernmentBEIS/inspect_ai/issues/6277"
+    },
+    {
+      "type": "FIX",
+      "url": "https://github.com/UKGovernmentBEIS/inspect_ai/pull/6282"
+    },
+    {
+      "type": "FIX",
+      "url": "https://github.com/UKGovernmentBEIS/inspect_ai/commit/e016fe2bd75d503da4ade67ebe77feda64174bfb"
+    },
+    {
+      "type": "WEB",
+      "url": "https://github.com/UKGovernmentBEIS/inspect_ai/pull/3690"
+    },
+    {
+      "type": "WEB",
+      "url": "https://github.com/UKGovernmentBEIS/inspect_ai/commit/0e4598136d38d3bc4d551e29c74adc391cda5f65"
+    },
+    {
+      "type": "PACKAGE",
+      "url": "https://pypi.org/project/inspect-ai/"
+    },
+    {
+      "type": "WEB",
+      "url": "https://doi.org/10.5281/zenodo.21633620"
+    },
+    {
+      "type": "EVIDENCE",
+      "url": "https://github.com/AUTHENSOR/etb-scan/blob/main/EVIDENCE-TABLE.md"
+    },
+    {
+      "type": "WEB",
+      "url": "https://www.authensor.com/etb"
+    }
+  ],
+  "credits": [
+    {
+      "name": "John Kearney (Authensor Research)",
+      "contact": [
+        "mailto:john@authensor.com",
+        "https://github.com/JohnKearney15"
+      ],
+      "type": "FINDER"
+    },
+    {
+      "name": "MattFisher (inspect_ai contributor)",
+      "contact": [
+        "https://github.com/MattFisher"
+      ],
+      "type": "FINDER"
+    },
+    {
+      "name": "dragonstyle (inspect_ai maintainer)",
+      "contact": [
+        "https://github.com/dragonstyle"
+      ],
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "FazeelUsmani (inspect_ai contributor)",
+      "contact": [
+        "https://github.com/FazeelUsmani"
+      ],
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "epatey (inspect_ai maintainer)",
+      "contact": [
+        "https://github.com/epatey"
+      ],
+      "type": "REMEDIATION_REVIEWER"
+    },
+    {
+      "name": "jjallaire (inspect_ai maintainer)",
+      "contact": [
+        "https://github.com/jjallaire"
+      ],
+      "type": "REMEDIATION_REVIEWER"
+    },
+    {
+      "name": "MattFisher (inspect_ai contributor)",
+      "contact": [
+        "https://github.com/MattFisher"
+      ],
+      "type": "REMEDIATION_VERIFIER"
+    }
+  ],
+  "database_specific": {
+    "etb": {
+      "schema": "etb-registry/1",
+      "classes": [
+        "ETB-02"
+      ],
+      "family": "verdict-path",
+      "target": {
+        "kind": "judge",
+        "name": "Inspect AI model-graded scorers",
+        "repo": "https://github.com/UKGovernmentBEIS/inspect_ai",
+        "components": [
+          "src/inspect_ai/scorer/_model.py"
+        ],
+        "affected_component_versions": "inspect-ai < 0.3.288. Releases 0.3.212 to 0.3.287 carry a marker rewrite that did not stop the attack."
+      },
+      "attack": {
+        "description": "The evaluated model writes an answer that ends with `[END DATA]`, a fake grader note that asks for a grade, and a new `[BEGIN DATA]`. The scorer inserts the answer into the judge prompt, so the judge model sees the note outside the data block. From 0.3.212 to 0.3.287 the scorer rewrote the forged markers to `[END-DATA]` and `[BEGIN-DATA]`, and judges still read them as markers.",
+        "preconditions": "A task scored with `model_graded_qa` or `model_graded_fact` and a default template. The evaluated model needs to know the template layout, which is public. The effect depends on the judge model: issue #6277 reports 55 to 100 percent of verdicts flipped across four judges on 0.3.283.",
+        "demonstrated": true,
+        "poc_public": true,
+        "poc_pointer": "The example prompt and judge replies in issue #6277. The before and after table in pull request #6282. Injection tests in tests/scorer/test_model_graded.py, added by pull requests #3690 and #6282."
+      },
+      "hardening": {
+        "fix": "Put each field of the judge prompt between markers that carry a random code made for that grading request, and tell the judge that marker-like text without the code is part of the field. Rewriting a fixed marker was not enough.",
+        "pattern": "Escape or structurally neutralize model output before it enters any grader prompt; use message-role separation (taxonomy ETB-02 fix pattern).",
+        "residual_risk": "The fix lowers the attack rate and does not remove it. On the fix branch the reporter of #6277 measured attack success of 0.00 to 0.12 on `model_graded_qa`, averaged over the original attacks. One judge still sometimes followed a close marker with no code, or a note that announced a new code. Another still followed a fake chat-role message about as often as before. A custom template that keeps `[BEGIN DATA]` and does not use the code relies on the earlier rewrite, which the project's docs now call a partial defence. The pull request says grades on existing benchmarks can shift slightly, because the default grading prompt changed."
+      },
+      "disclosure": {
+        "tier": 1,
+        "tier_reason": "Public artifact, no non-public information, impact limited to the judge's grade, fix options proposed with the report.",
+        "status": "published",
+        "channel": [
+          "github-issue"
+        ],
+        "reported": "2026-03-31",
+        "acknowledged": "2026-04-23",
+        "fixed": "2026-11-04",
+        "released": "inspect-ai 0.3.288",
+        "registry_published": "2026-11-18",
+        "notes": "Reported as issue #3603 from the JohnKearney15 account. No maintainer comment appears on the issue. A maintainer's first change on pull request #3690 was a changelog commit on 2026-04-23 (UTC); that is the acknowledged date. The merge followed on 2026-04-24 (UTC). Pull request #3690, written by another contributor and merged by a maintainer, closed the issue. Issue #6277, from another reporter on 2026-11-03, showed with the reporter's own measurements that this change did not stop the attack, and named two marker forms it does not rewrite. That reporter is credited as a finder. The maintainers' pull request #6282 replaced the defence on 2026-11-04. The fixed date is that merge."
+      },
+      "cross_references": {
+        "cwe": [
+          "CWE-1427"
+        ],
+        "atlas": {
+          "version": "2026.10",
+          "tactics": [
+            "AML.TA0007"
+          ],
+          "techniques": [
+            "AML.T0051"
+          ],
+          "fit": "best-fit",
+          "case_study": null
+        },
+        "owasp_ai_exchange": {
+          "section": "5.3.6 Testing evaluation integrity (proposed)",
+          "mechanism": "Unsanitized model output",
+          "url": "https://github.com/OWASP/www-project-ai-security-and-privacy-guide/pull/247",
+          "status": "Proposed by Authensor in OWASP/www-project-ai-security-and-privacy-guide pull request #247, which is open on 2026-11-13. Not published OWASP text."
+        },
+        "owasp_llm_top10_2025": [
+          "LLM01"
+        ],
+        "nist_caisi_category": "grader-gaming"
+      },
+      "harness": {
+        "probes": [],
+        "attacker_strategies": [
+          "prompt_boundary_break"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://github.com/UKGovernmentBEIS/inspect_ai/issues/3603",
+          "note": "The report."
+        },
+        {
+          "url": "https://github.com/UKGovernmentBEIS/inspect_ai/pull/3690",
+          "note": "The first change. Its description says which part of the report it addresses and which part does not occur. Later pages show it did not stop the attack."
+        },
+        {
+          "url": "https://github.com/UKGovernmentBEIS/inspect_ai/issues/6277",
+          "note": "A later report from another reporter, with measured verdict flips on 0.3.283 and the statement that the first change made no measurable difference."
+        },
+        {
+          "url": "https://github.com/UKGovernmentBEIS/inspect_ai/pull/6282",
+          "note": "The maintainers' fix, with a before and after table and the reporter's rerun on the branch."
+        },
+        {
+          "url": "https://github.com/AUTHENSOR/etb-scan/blob/main/EVIDENCE-TABLE.md",
+          "note": "Row UKGovernmentBEIS/inspect_ai #3603 (ETB-02, landed)."
+        }
+      ],
+      "severity_self": null,
+      "unverified": [
+        "The measured rates in issue #6277 and pull request #6282 were read from the pages and not reproduced. The experiment report that the issue links was not read.",
+        "Whether any published result was affected (no claim is made).",
+        "Affiliations of the credited GitHub accounts; each is credited by handle and by the role the page shows.",
+        "The first release that contained the affected code (the 'introduced' bound).",
+        "That each package-index release was built from the git tag of the same name."
+      ]
+    }
+  },
+  "published": "2026-11-18T23:49:47Z"
+}

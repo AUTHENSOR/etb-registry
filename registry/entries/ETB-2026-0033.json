@@ -1,0 +1,195 @@
+{
+  "schema_version": "1.9.2",
+  "id": "ETB-2026-0033",
+  "modified": "2026-11-18T23:49:47Z",
+  "aliases": [],
+  "related": [
+    "ETB-2026-0029"
+  ],
+  "summary": "Presidio Spanish NIF and NIE recognizers rejected valid lowercase identifiers because the checksum compared against an uppercase table (ETB-06)",
+  "details": "`EsNifRecognizer` and `EsNieRecognizer` in `presidio-analyzer` match candidates without regard to case, then validate them with a mod-23 control letter. The validation compared the extracted letter with an uppercase table and did not change the case of the input. A valid identifier written in lowercase, such as `12345678z` or `x1234567l`, failed validation and was dropped, while the uppercase form was detected. This is ETB-06 (missing normalization): a case variant of the same identifier evaded the detector. The case of the identifier is chosen by whoever writes the text under analysis. Where the recognizer screens the output of a model or agent, that writer is the system being checked. The etb-scan evidence table lists this pull request under ETB-06.\n\nFix: pull request #2076 (opened 2026-06-18, merged 2026-07-01, first released in presidio-analyzer 2.2.364 on 2026-07-22) upper-cases the candidate text before the checksum. Tests cover valid lowercase identifiers and an invalid checksum that must still be rejected.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "PyPI",
+        "name": "presidio-analyzer",
+        "purl": "pkg:pypi/presidio-analyzer"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "2.2.364"
+            }
+          ]
+        }
+      ],
+      "database_specific": {
+        "note": "'introduced: 0' is a conservative bound. Git tag 2.2.363 does not contain the fix commit and tag 2.2.364 does (GitHub compare, 2026-11-12). PyPI lists 2.2.364, uploaded 2026-07-22."
+      }
+    },
+    {
+      "ranges": [
+        {
+          "type": "GIT",
+          "repo": "https://github.com/data-privacy-stack/presidio",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "5192caf96ecacdf5147a85c57a451e4ebafc27d5"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "FIX",
+      "url": "https://github.com/data-privacy-stack/presidio/pull/2076"
+    },
+    {
+      "type": "FIX",
+      "url": "https://github.com/data-privacy-stack/presidio/commit/5192caf96ecacdf5147a85c57a451e4ebafc27d5"
+    },
+    {
+      "type": "PACKAGE",
+      "url": "https://pypi.org/project/presidio-analyzer/"
+    },
+    {
+      "type": "WEB",
+      "url": "https://doi.org/10.5281/zenodo.21633620"
+    },
+    {
+      "type": "EVIDENCE",
+      "url": "https://github.com/AUTHENSOR/etb-scan/blob/main/EVIDENCE-TABLE.md"
+    },
+    {
+      "type": "WEB",
+      "url": "https://www.authensor.com/etb"
+    }
+  ],
+  "credits": [
+    {
+      "name": "John Kearney (Authensor Research)",
+      "contact": [
+        "mailto:john@authensor.com",
+        "https://github.com/AUTHENSOR"
+      ],
+      "type": "FINDER"
+    },
+    {
+      "name": "John Kearney (Authensor Research)",
+      "contact": [
+        "mailto:john@authensor.com",
+        "https://github.com/AUTHENSOR"
+      ],
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "SharonHart (presidio maintainer)",
+      "contact": [
+        "https://github.com/SharonHart"
+      ],
+      "type": "REMEDIATION_REVIEWER"
+    }
+  ],
+  "database_specific": {
+    "etb": {
+      "schema": "etb-registry/1",
+      "classes": [
+        "ETB-06"
+      ],
+      "family": "detection-coverage",
+      "target": {
+        "kind": "detector",
+        "name": "Presidio Spanish NIF and NIE recognizers",
+        "repo": "https://github.com/data-privacy-stack/presidio",
+        "components": [
+          "presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/spain/es_nif_recognizer.py",
+          "presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/spain/es_nie_recognizer.py"
+        ],
+        "affected_component_versions": "presidio-analyzer < 2.2.364"
+      },
+      "attack": {
+        "description": "Text contains a valid Spanish NIF or NIE written in lowercase. The recognizer matches the candidate, fails the checksum on the lowercase letter, and returns no result.",
+        "preconditions": "The default Spanish NIF and NIE recognizers. Uppercase identifiers were detected before and after.",
+        "demonstrated": true,
+        "poc_public": true,
+        "poc_pointer": "Lowercase cases added to presidio-analyzer/tests/test_es_nif_recognizer.py and test_es_nie_recognizer.py by pull request #2076."
+      },
+      "hardening": {
+        "fix": "Upper-case the candidate before the checksum lookup; keep a test that an invalid checksum is still rejected in either case.",
+        "pattern": "Normalize both trigger strings and model output before matching (taxonomy ETB-06 fix pattern).",
+        "residual_risk": "The fix normalizes case only. Other written variants of the identifier are outside it."
+      },
+      "disclosure": {
+        "tier": 1,
+        "tier_reason": "Public artifact, no non-public information, impact limited to the detector's result, fix supplied with the report.",
+        "status": "published",
+        "channel": [
+          "github-pr"
+        ],
+        "reported": "2026-06-18",
+        "acknowledged": "2026-07-01",
+        "fixed": "2026-07-01",
+        "released": "presidio-analyzer 2.2.364",
+        "registry_published": "2026-11-18",
+        "notes": "Reported as pull request #2076 from the AUTHENSOR account, carrying the fix. Approved and merged by a maintainer."
+      },
+      "cross_references": {
+        "cwe": [
+          "CWE-176"
+        ],
+        "atlas": {
+          "version": "2026.10",
+          "tactics": [
+            "AML.TA0007"
+          ],
+          "techniques": [],
+          "fit": "best-fit",
+          "case_study": null
+        },
+        "owasp_ai_exchange": {
+          "section": "5.3.6 Testing evaluation integrity (proposed)",
+          "mechanism": "Missing normalization",
+          "url": "https://github.com/OWASP/www-project-ai-security-and-privacy-guide/pull/247",
+          "status": "Proposed by Authensor in OWASP/www-project-ai-security-and-privacy-guide pull request #247, which is open on 2026-11-13. Not published OWASP text."
+        },
+        "owasp_llm_top10_2025": [],
+        "nist_caisi_category": "grader-gaming"
+      },
+      "harness": {
+        "probes": [],
+        "attacker_strategies": [
+          "unicode_evasion"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://github.com/data-privacy-stack/presidio/pull/2076",
+          "note": "The report and the merged fix."
+        },
+        {
+          "url": "https://github.com/AUTHENSOR/etb-scan/blob/main/EVIDENCE-TABLE.md",
+          "note": "Row data-privacy-stack/presidio #2076 (ETB-06, landed)."
+        }
+      ],
+      "severity_self": null,
+      "unverified": [
+        "Whether any published result was affected (no claim is made).",
+        "Affiliations of the credited GitHub accounts; each is credited by handle and by the role the page shows.",
+        "The first release that contained the affected code (the 'introduced' bound).",
+        "That each package-index release was built from the git tag of the same name.",
+        "That the recognizer screens the output of an evaluated model in any named deployment. The pull request describes missed detections and names no such use."
+      ]
+    }
+  },
+  "published": "2026-11-18T23:49:47Z"
+}
